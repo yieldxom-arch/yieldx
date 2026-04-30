@@ -1,0 +1,86 @@
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                     🔧 ORGANIZATION ROLE ERROR FIX 🔧                      ║
+║                                                                            ║
+║                         ⚡ 3 QUICK WAYS TO FIX ⚡                          ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │   METHOD 1: CLICK THE YELLOW BUTTON (30 seconds) 👈 EASIEST!          │
+  │   ─────────────────────────────────────────────────────────────        │
+  │   1. Open YieldX app in browser                                        │
+  │   2. Look at bottom-right corner                                       │
+  │   3. Click yellow "Run Migration Now" button                           │
+  │   4. Wait for "✅ Migration successful!" message                       │
+  │   5. Done!                                                             │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │   METHOD 2: BROWSER CONSOLE (1 minute) 💻                             │
+  │   ─────────────────────────────────────                                │
+  │   1. Open YieldX app                                                   │
+  │   2. Press F12 (Developer Tools)                                       │
+  │   3. Click "Console" tab                                               │
+  │   4. Type: runOrganizationRoleMigration()                              │
+  │   5. Press Enter                                                       │
+  │   6. Wait for success message                                          │
+  │   7. Done!                                                             │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │   METHOD 3: SUPABASE SQL EDITOR (2 minutes) 🗃️                        │
+  │   ──────────────────────────────────────────                           │
+  │   1. Go to: https://hwbpgmbcasgdvhbofauc.supabase.co                  │
+  │   2. Click "SQL Editor" in left sidebar                                │
+  │   3. Copy this SQL:                                                    │
+  │                                                                        │
+  │      ALTER TABLE profiles DROP CONSTRAINT IF EXISTS                    │
+  │      profiles_role_check;                                              │
+  │                                                                        │
+  │      ALTER TABLE profiles ADD CONSTRAINT profiles_role_check           │
+  │      CHECK (role IN ('student', 'lecturer', 'admin',                   │
+  │      'organization'));                                                 │
+  │                                                                        │
+  │   4. Click "Run" button                                                │
+  │   5. Should see "Success. No rows returned"                            │
+  │   6. Done!                                                             │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║   ✅ AFTER MIGRATION:                                                      ║
+║   • Organization accounts can be registered                                ║
+║   • Organization users can log in                                          ║
+║   • OrganizationDashboard loads correctly                                  ║
+║   • No more "profiles_role_check" errors!                                  ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║   📚 NEED MORE INFO?                                                       ║
+║   • Quick Start:        /START_HERE.md                                     ║
+║   • Complete Guide:     /MIGRATION_INSTRUCTIONS.md                         ║
+║   • Testing Checklist:  /TESTING_CHECKLIST.md                              ║
+║   • SQL Script:         /FIX_ORGANIZATION_ROLE.sql                         ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+  🎯 PICK ONE METHOD ABOVE AND RUN IT NOW! 🎯
+
+  Migration takes less than 1 minute and only needs to run ONCE!
+

@@ -1,0 +1,91 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   🚀 ORGANIZATION ROLE ERROR - QUICK FIX GUIDE                              ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  ⚠️  ERROR YOU'RE SEEING:
+  ────────────────────────────────────────────────────────────────────────────
+  ❌ create-profile error: new row for relation "profiles" violates 
+     check constraint "profiles_role_check"
+
+
+  ✅ SOLUTION - PICK ONE METHOD:
+  ────────────────────────────────────────────────────────────────────────────
+
+  ┌─ METHOD 1: CLICK THE YELLOW BUTTON (EASIEST!) ──────────────────────────┐
+  │                                                                          │
+  │  1. Open your YieldX app in browser                                     │
+  │  2. Look at BOTTOM-RIGHT corner                                         │
+  │  3. See yellow warning box? Click "Run Migration Now"                   │
+  │  4. Wait for success message                                            │
+  │  5. Try registering organization account again                          │
+  │                                                                          │
+  │  📍 What to look for:                                                   │
+  │     ┌─────────────────────────────────────┐                            │
+  │     │ ⚠️ Database Migration Required      │                            │
+  │     │ [ 🔧 Run Migration Now ]            │                            │
+  │     └─────────────────────────────────────┘                            │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+  ┌─ METHOD 2: BROWSER CONSOLE (ALSO EASY!) ────────────────────────────────┐
+  │                                                                          │
+  │  1. Press F12 (open Developer Tools)                                    │
+  │  2. Click "Console" tab                                                 │
+  │  3. Type this command and press Enter:                                  │
+  │                                                                          │
+  │     runOrganizationRoleMigration()                                      │
+  │                                                                          │
+  │  4. Wait for "✅ Migration successful!" message                         │
+  │  5. Try registering organization account again                          │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+  ┌─ METHOD 3: SUPABASE SQL EDITOR (FOR ADVANCED USERS) ────────────────────┐
+  │                                                                          │
+  │  1. Go to: https://hwbpgmbcasgdvhbofauc.supabase.co                    │
+  │  2. Click "SQL Editor" in left sidebar                                  │
+  │  3. Paste this SQL:                                                     │
+  │                                                                          │
+  │     ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check; │
+  │     ALTER TABLE profiles ADD CONSTRAINT profiles_role_check             │
+  │     CHECK (role IN ('student', 'lecturer', 'admin', 'organization'));   │
+  │                                                                          │
+  │  4. Click "Run" (or press Ctrl+Enter)                                   │
+  │  5. Should see "Success. No rows returned"                              │
+  │  6. Try registering organization account again                          │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+  🎉 AFTER MIGRATION SUCCEEDS:
+  ────────────────────────────────────────────────────────────────────────────
+  ✅ Organization accounts can now be created
+  ✅ Organization users can log in
+  ✅ OrganizationDashboard will load correctly
+  ✅ No more constraint violation errors!
+
+
+  ❓ TROUBLESHOOTING:
+  ────────────────────────────────────────────────────────────────────────────
+  • Can't see yellow button? → Check /src/app/App.tsx has MigrationButton
+  • Console command not found? → Refresh page and try again
+  • Migration fails? → Try Method 3 (SQL Editor) instead
+  • Still errors? → Check server logs in Supabase Edge Functions
+
+
+  📚 NEED MORE HELP?
+  ────────────────────────────────────────────────────────────────────────────
+  See these files for detailed documentation:
+  • /README_MIGRATION.md           ← Quick start guide
+  • /MIGRATION_INSTRUCTIONS.md     ← Complete step-by-step instructions
+  • /ORGANIZATION_ROLE_FIX.md      ← Technical details
+  • /SOLUTION_SUMMARY.md           ← What was done and why
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  💡 TIP: You only need to run the migration ONCE!                           ║
+║      After it succeeds, all future organization registrations will work.    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
