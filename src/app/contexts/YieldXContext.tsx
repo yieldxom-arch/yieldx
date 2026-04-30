@@ -1072,6 +1072,22 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
     console.log(`💾 Saved ${filteredUsers.length} user account(s) to database`);
   };
 
+  const normalizeUserRole = (incomingRole: string): UserRole => {
+    if (incomingRole === 'teacher') return 'lecturer';
+    const normalized = incomingRole?.toLowerCase();
+    if (normalized === 'student' || normalized === 'lecturer' || normalized === 'admin' || normalized === 'organization') {
+      return normalized as UserRole;
+    }
+    return 'student';
+  };
+
+  const isNetworkError = (error: unknown): boolean => {
+    if (!navigator.onLine) return true;
+    if (!error) return false;
+    const message = typeof error === 'string' ? error : (error as { message?: string }).message;
+    return typeof message === 'string' && /network|failed to fetch|offline|timeout/i.test(message);
+  };
+
   // NEW FEATURES STATE
   const [badges, setBadges] = useState<Badge[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -1393,7 +1409,21 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       console.log('🌐 ONLINE login attempt via Supabase:', email);
       try {
         const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-        if (!error && data.user) {
+        if (error) {
+          const message = error.message || String(error);
+          const networkError = isNetworkError(error);
+          if (networkError) {
+            console.warn('⚠️ Supabase login network error, trying local fallback:', message);
+          } else {
+            console.error('❌ ERROR: Supabase login failed:', message);
+            return false;
+          }
+        } else if (!data?.user) {
+          console.error('❌ ERROR: Supabase login returned no user for', email);
+          return false;
+        }
+
+        if (data?.user) {
           const supabaseId = data.user.id;
           const userMeta = data.user.user_metadata || {};
           const effectiveRole: UserRole = (userMeta.role as UserRole) || role;
@@ -1434,9 +1464,13 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
           console.log('✅ USER LOGGED IN (ONLINE/Supabase):', newUser);
           return true;
         }
-        console.warn('⚠️ Supabase login failed:', error?.message, '— trying local fallback...');
       } catch (e) {
-        console.warn('⚠️ Supabase login error, trying local fallback:', e);
+        if (isNetworkError(e)) {
+          console.warn('⚠️ Supabase login network error, trying local fallback:', e);
+        } else {
+          console.error('❌ ERROR: Supabase login exception:', e);
+          return false;
+        }
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -1540,42 +1574,74 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
 
     // ── HYBRID: Try Supabase server signup when online ────────────────────────
     if (navigator.onLine) {
-      console.log('🌐 ONLINE registration via Supabase:', { email, name, role });
+      const normalizedRole = normalizeUserRole(role);
+      console.log('🌐 Calling supabase.auth.signUp...', { email, name, role: normalizedRole });
       try {
-        const res = await fetch(`${SERVER_BASE}/signup`, {
-          method: 'POST',
-          headers: AUTH_HEADERS,
-          body: JSON.stringify({ email, password, name, role }),
+        const { data: authData, error: authError } = await sbClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              role: normalizedRole,
+            },
+          },
         });
-        const data = await res.json();
-        if (res.ok && data.userId) {
+
+        if (authError) {
+          const message = authError.message || String(authError);
+          const networkError = isNetworkError(authError);
+          console.error('❌ ERROR: supabase.auth.signUp failed for', email, message);
+          if (!networkError) return false;
+          console.warn('⚠️ Supabase signup network error, trying local fallback:', message);
+        } else if (!authData?.user) {
+          console.error('❌ ERROR: supabase.auth.signUp returned no user for', email);
+          return false;
+        } else {
+          console.log('✅ Auth user created:', email);
+          console.log('📝 Inserting profile into public.users...');
+
+          const normalizedRoleInsert = normalizeUserRole(role);
+          const { data: profileData, error: profileError } = await sbClient
+            .from('users')
+            .insert({ id: authData.user.id, email, name, role: normalizedRoleInsert })
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error(`❌ ERROR: Failed to insert public.users profile for ${email}:`, profileError.message || profileError);
+            return false;
+          }
+
+          console.log('✅ Profile created successfully');
           const newUserContext: User = {
-            id: data.userId,
+            id: authData.user.id,
             name,
             email,
-            role,
+            role: normalizedRoleInsert,
             subscriptionTier: 'free',
             maxProjects: 1,
           };
+
           // Also store locally for offline fallback
-          const newUserRecord = { email, password, role, name, supabaseId: data.userId };
+          const newUserRecord = { email, password, role: normalizedRoleInsert, name };
           const storedUsers = getStoredUsersOnly();
           if (!storedUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase())) {
             saveRegisteredUsers([...storedUsers, newUserRecord]);
           }
+
           setUser(newUserContext);
           setCurrentView('dashboard');
           console.log('✅ USER REGISTERED (ONLINE/Supabase):', newUserContext);
           return true;
         }
-        // If email already exists on Supabase, signal that
-        if (res.status === 409 || data.code === 'email_exists') {
-          console.error('❌ Email already registered on Supabase');
+      } catch (e) {
+        if (isNetworkError(e)) {
+          console.warn('⚠️ Supabase signup network error, trying local fallback:', e);
+        } else {
+          console.error('❌ ERROR: Supabase signup exception for', email, e);
           return false;
         }
-        console.warn('⚠️ Supabase signup failed:', data.error, '— trying local fallback...');
-      } catch (e) {
-        console.warn('⚠️ Supabase signup error, trying local fallback:', e);
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
