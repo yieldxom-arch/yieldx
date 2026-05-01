@@ -21,7 +21,7 @@ import { WorkspaceManager } from '@/app/components/workspace/WorkspaceManager';
 import { StudentWorkspaceView } from '@/app/components/workspace/StudentWorkspaceView';
 import { TeacherDashboard } from '@/app/components/teacher/TeacherDashboard';
 import { ChatBot } from '@/app/components/chatbot/ChatBot';
-import { VideoLibrary } from '@/app/components/video-library/VideoLibrary';
+import { ShortsLibrary } from '@/app/components/video-library/ShortsLibrary';
 import { Leaderboard } from '@/app/components/leaderboard/Leaderboard';
 import { MessagingCenter } from '@/app/components/messaging/MessagingCenter';
 import { ProfessionalConsultation } from '@/app/components/consultation/ProfessionalConsultation';
@@ -134,7 +134,7 @@ function AppContent() {
       case 'teacher-dashboard':
         return <TeacherDashboard />;
       case 'video-library':
-        return <VideoLibrary />;
+        return <ShortsLibrary />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'messaging':
