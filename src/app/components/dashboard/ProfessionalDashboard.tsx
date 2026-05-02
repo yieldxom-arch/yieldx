@@ -524,6 +524,120 @@ export function ProfessionalDashboard() {
           </motion.div>
         </div>
 
+        {/* 3D Project Visualization Entry Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mb-8"
+        >
+          <Card
+            className="relative overflow-hidden border-[#4ECDC4]/30 dark:border-[#4ECDC4]/40 cursor-pointer group transition-all hover:border-[#4ECDC4]/60 shadow-lg hover:shadow-[#4ECDC4]/20"
+            style={{ background: 'linear-gradient(135deg, #0F0F25 0%, #1B1B3A 60%, #0F2A2A 100%)' }}
+            onClick={() => setCurrentView('project-3d-view')}
+          >
+            {/* Animated orbital rings (decorative) */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full border border-[#4ECDC4]/10"
+                  style={{
+                    width: `${120 + i * 80}px`,
+                    height: `${120 + i * 80}px`,
+                    top: '50%',
+                    left: '60%',
+                    transform: `translate(-50%, -50%) rotate(${i * 25}deg)`,
+                  }}
+                />
+              ))}
+              {/* Glow blob */}
+              <div
+                className="absolute w-48 h-48 rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, rgba(78,205,196,0.18) 0%, transparent 70%)',
+                  top: '10%',
+                  left: '55%',
+                  filter: 'blur(24px)',
+                }}
+              />
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between px-6 py-5 gap-6">
+              {/* Left: icon + text */}
+              <div className="flex items-center gap-5 min-w-0">
+                {/* 3D cube icon */}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                  style={{ background: 'linear-gradient(135deg, #4ECDC4, #7FDBCA)' }}
+                >
+                  <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l9 5v10l-9 5-9-5V7z" />
+                    <polyline points="3 7 12 12 21 7" />
+                    <line x1="12" y1="12" x2="12" y2="22" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white font-bold text-base leading-tight">
+                    {language === 'ar' ? 'عرض المشروع ثلاثي الأبعاد' : '3D Project Visualization'}
+                  </p>
+                  <p className="text-[#7FDBCA]/70 text-xs mt-0.5">
+                    {language === 'ar'
+                      ? 'استعرض تقدمك بشكل تفاعلي — دوّر، كبّر، واستكشف مستوياتك'
+                      : 'Explore your progress interactively — rotate, zoom, and navigate your levels'}
+                  </p>
+                  {/* Level progress dots */}
+                  <div className="flex items-center gap-1.5 mt-2.5">
+                    {levels.slice(0, 8).map((level, i) => {
+                      const s = level.submissionStatus;
+                      const isDone = s === 'graded' || s === 'submitted' || level.completed;
+                      const isActive = s === 'in-progress';
+                      const color = isDone ? '#4ECDC4' : isActive ? '#7FDBCA' : level.unlocked ? '#A8E6CF' : '#4a4a6a';
+                      return (
+                        <div
+                          key={i}
+                          className="rounded-full flex-shrink-0"
+                          style={{
+                            width: isDone ? 10 : 8,
+                            height: isDone ? 10 : 8,
+                            background: color,
+                            opacity: level.unlocked || isDone ? 1 : 0.35,
+                            boxShadow: isDone ? `0 0 6px ${color}80` : 'none',
+                          }}
+                        />
+                      );
+                    })}
+                    <span className="text-white/40 text-xs ml-1">
+                      {completedLevels}/{levels.length} {language === 'ar' ? 'مستوى' : 'levels'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: stats + CTA */}
+              <div className="flex items-center gap-6 flex-shrink-0">
+                <div className="hidden md:flex flex-col items-center gap-1 text-center">
+                  <p className="text-[#4ECDC4] font-bold text-2xl leading-none">{Math.round(overallProgress)}%</p>
+                  <p className="text-white/40 text-xs">{language === 'ar' ? 'التقدم' : 'Progress'}</p>
+                </div>
+                <div
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all group-hover:shadow-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, #4ECDC4, #5DD9C1)',
+                    color: '#0F0F25',
+                    boxShadow: '0 4px 15px rgba(78,205,196,0.3)',
+                  }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l9 5v10l-9 5-9-5V7z" />
+                  </svg>
+                  {language === 'ar' ? 'فتح العرض' : 'Open 3D View'}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
         {/* NEW: Daily Streaks Widget */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

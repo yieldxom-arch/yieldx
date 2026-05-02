@@ -24,11 +24,14 @@ import {
   Award,
   Clock,
   Lock,
+  PanelRightOpen,
+  PanelRightClose,
+  TrendingUp,
+  Layers,
+  Target,
 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
-import { Button } from '@/app/components/ui/button';
-import { Card } from '@/app/components/ui/card';
-import type { LevelProgress } from '@/app/contexts/YieldXContext';
+import type { LevelProgress, FinancialKPIs, BMCData } from '@/app/contexts/YieldXContext';
 
 // ─── YieldX Design Tokens (kept in-sync with theme.css) ─────────────────────
 const TOKEN = {
@@ -165,14 +168,32 @@ function buildScene(levels: LevelProgress[]): SceneNode[] {
   });
 }
 
-// ─── WebGL check ──────────────────────────────────────────────────────────────
-function supportsWebGL(): boolean {
+// ─── Canvas 2D capability check ───────────────────────────────────────────────
+function supportsCanvas2D(): boolean {
   try {
     const c = document.createElement('canvas');
-    return !!(c.getContext('webgl') || c.getContext('experimental-webgl'));
+    return !!c.getContext('2d');
   } catch {
     return false;
   }
+}
+
+// ─── Scene config persistence ─────────────────────────────────────────────────
+interface SceneConfig { rx: number; ry: number; zoom: number }
+const DEFAULT_SCENE: SceneConfig = { rx: -0.25, ry: 0.6, zoom: 1 };
+
+function loadSceneConfig(projectId: string | null): SceneConfig {
+  try {
+    const raw = localStorage.getItem(`yieldx_3d_scene_${projectId ?? 'default'}`);
+    if (raw) return { ...DEFAULT_SCENE, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_SCENE };
+}
+
+function saveSceneConfig(projectId: string | null, cfg: SceneConfig): void {
+  try {
+    localStorage.setItem(`yieldx_3d_scene_${projectId ?? 'default'}`, JSON.stringify(cfg));
+  } catch { /* ignore */ }
 }
 
 // ─── Star field (stable, seeded pseudo-random) ────────────────────────────────
@@ -183,7 +204,7 @@ const STARS = Array.from({ length: 90 }, (_, i) => ({
   phase: i * 0.7,
 }));
 
-// ─── Canvas 2-D Renderer (primary) / static card fallback ────────────────────
+// ─── Canvas 2-D Renderer ──────────────────────────────────────────────────────
 function renderScene(
   ctx: CanvasRenderingContext2D,
   nodes: SceneNode[],
@@ -228,7 +249,7 @@ function renderScene(
   // Depth sort: farthest first (painter's algorithm)
   const sorted = [...projected].sort((a, b) => a.depth - b.depth);
 
-  // Draw orbital grid rings (subtle)
+  // Orbital grid rings
   ctx.save();
   ctx.strokeStyle = 'rgba(78,205,196,0.07)';
   ctx.lineWidth = 1;
@@ -251,7 +272,7 @@ function renderScene(
   }
   ctx.restore();
 
-  // Draw edges
+  // Edges
   ctx.save();
   for (const [ai, bi] of edges) {
     const a = projected[ai];
@@ -271,7 +292,7 @@ function renderScene(
   }
   ctx.restore();
 
-  // Draw nodes
+  // Nodes
   for (const node of sorted) {
     const { px, py, scale, depth, r, g, b } = node;
     const isSelected = node.id === selectedId;
@@ -279,7 +300,6 @@ function renderScene(
     const pulse = isSelected ? 1 + 0.07 * Math.sin(t * 3.5) : 1;
     const nodeR = 26 * scale * pulse;
 
-    // Glow halo
     if (node.glowAlpha > 0.1) {
       const glowR = nodeR * 2.8;
       const glow = ctx.createRadialGradient(px, py, 0, px, py, glowR);
@@ -291,7 +311,6 @@ function renderScene(
       ctx.fill();
     }
 
-    // Selection ring
     if (isSelected) {
       ctx.beginPath();
       ctx.arc(px, py, nodeR + 5, 0, Math.PI * 2);
@@ -300,7 +319,6 @@ function renderScene(
       ctx.stroke();
     }
 
-    // Progress arc (outer ring showing completion)
     if (node.progress > 0 && node.progress <= 1) {
       const arcR = nodeR + 3;
       ctx.beginPath();
@@ -310,7 +328,6 @@ function renderScene(
       ctx.stroke();
     }
 
-    // Sphere body
     const sphere = ctx.createRadialGradient(
       px - nodeR * 0.3, py - nodeR * 0.35, 0,
       px, py, nodeR,
@@ -323,7 +340,6 @@ function renderScene(
     ctx.fillStyle = sphere;
     ctx.fill();
 
-    // Specular highlight
     const spec = ctx.createRadialGradient(
       px - nodeR * 0.35, py - nodeR * 0.4, 0,
       px - nodeR * 0.35, py - nodeR * 0.4, nodeR * 0.6,
@@ -335,7 +351,6 @@ function renderScene(
     ctx.fillStyle = spec;
     ctx.fill();
 
-    // Level number label
     const fontSize = Math.max(9, Math.round(14 * scale));
     ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
@@ -343,7 +358,6 @@ function renderScene(
     ctx.fillStyle = `rgba(255,255,255,${depthAlpha * 0.95})`;
     ctx.fillText(`${node.levelId}`, px, py);
 
-    // Title label below sphere (only if large enough)
     if (scale > 0.55 && nodeR > 14) {
       const labelFs = Math.max(8, Math.round(10 * scale));
       ctx.font = `${labelFs}px system-ui, sans-serif`;
@@ -353,11 +367,14 @@ function renderScene(
   }
 }
 
-// ─── Static HTML fallback (no canvas) ────────────────────────────────────────
+// ─── Static HTML fallback (no canvas support) ────────────────────────────────
 function FallbackGrid({ nodes, language }: { nodes: SceneNode[]; language: string }) {
   const isAr = language === 'ar';
   return (
     <div className="w-full h-full overflow-auto p-6">
+      <p className="text-center text-white/40 text-xs mb-4">
+        {isAr ? 'عرض بديل — الجهاز لا يدعم رسم الكانفاس' : 'Fallback view — canvas rendering not supported on this device'}
+      </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {nodes.map((node) => (
           <div
@@ -394,11 +411,11 @@ function FallbackGrid({ nodes, language }: { nodes: SceneNode[]; language: strin
 function StatusBadge({ status, language }: { status: string; language: string }) {
   const isAr = language === 'ar';
   const map: Record<string, { label: string; labelAr: string; cls: string }> = {
-    graded:      { label: 'Graded',      labelAr: 'مُقيَّم',      cls: 'bg-[#4ECDC4]/20 text-[#4ECDC4] border-[#4ECDC4]/30' },
-    submitted:   { label: 'Submitted',   labelAr: 'مُقدَّم',      cls: 'bg-[#7FDBCA]/20 text-[#7FDBCA] border-[#7FDBCA]/30' },
-    'in-progress':{ label: 'In Progress', labelAr: 'قيد التنفيذ', cls: 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30' },
-    'not-started':{ label: 'Not Started', labelAr: 'لم يبدأ',     cls: 'bg-white/10 text-white/50 border-white/10' },
-    locked:      { label: 'Locked',      labelAr: 'مغلق',        cls: 'bg-white/5 text-white/30 border-white/5' },
+    graded:       { label: 'Graded',       labelAr: 'مُقيَّم',      cls: 'bg-[#4ECDC4]/20 text-[#4ECDC4] border-[#4ECDC4]/30' },
+    submitted:    { label: 'Submitted',    labelAr: 'مُقدَّم',      cls: 'bg-[#7FDBCA]/20 text-[#7FDBCA] border-[#7FDBCA]/30' },
+    'in-progress':{ label: 'In Progress',  labelAr: 'قيد التنفيذ',  cls: 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30' },
+    'not-started':{ label: 'Not Started',  labelAr: 'لم يبدأ',      cls: 'bg-white/10 text-white/50 border-white/10' },
+    locked:       { label: 'Locked',       labelAr: 'مغلق',         cls: 'bg-white/5 text-white/30 border-white/5' },
   };
   const cfg = map[status] ?? map['not-started'];
   return (
@@ -417,10 +434,12 @@ function NodePanel({
   node,
   language,
   onClose,
+  onNavigate,
 }: {
   node: SceneNode;
   language: string;
   onClose: () => void;
+  onNavigate?: (levelId: number) => void;
 }) {
   const isAr = language === 'ar';
   const pct = Math.round(node.progress * 100);
@@ -439,7 +458,6 @@ function NodePanel({
       }}
     >
       <div className="p-4 space-y-3">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0"
@@ -465,7 +483,6 @@ function NodePanel({
           </div>
         </div>
 
-        {/* Progress bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-white/50">
             <span>{isAr ? 'التقدم' : 'Progress'}</span>
@@ -479,7 +496,6 @@ function NodePanel({
           </div>
         </div>
 
-        {/* XP */}
         <div className="flex items-center justify-between text-xs">
           <span className="text-white/50 flex items-center gap-1">
             <Award className="w-3 h-3" />
@@ -490,12 +506,21 @@ function NodePanel({
           </span>
         </div>
 
-        {/* Grade */}
         {node.grade != null && (
           <div className="flex items-center justify-between text-xs">
             <span className="text-white/50">{isAr ? 'الدرجة' : 'Grade'}</span>
             <span className="font-bold text-white">{node.grade}%</span>
           </div>
+        )}
+
+        {onNavigate && node.status !== 'locked' && (
+          <button
+            onClick={() => onNavigate(node.levelId)}
+            className="w-full py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: node.hexColor + '25', color: node.hexColor, border: `1px solid ${node.hexColor}40` }}
+          >
+            {isAr ? 'فتح المستوى' : 'Open Level'}
+          </button>
         )}
       </div>
     </motion.div>
@@ -550,7 +575,6 @@ function SharePanel({
         </button>
       </div>
 
-      {/* Share link */}
       <div className="space-y-1.5">
         <p className="text-white/50 text-xs">{isAr ? 'رابط المشاركة' : 'Share link'}</p>
         <div className="flex items-center gap-2">
@@ -568,7 +592,6 @@ function SharePanel({
         </div>
       </div>
 
-      {/* Embed code */}
       <div className="space-y-1.5">
         <p className="text-white/50 text-xs">{isAr ? 'كود التضمين' : 'Embed code'}</p>
         <div className="flex items-start gap-2">
@@ -587,7 +610,6 @@ function SharePanel({
         </div>
       </div>
 
-      {/* Download snapshot */}
       <button
         onClick={onDownload}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all"
@@ -602,42 +624,288 @@ function SharePanel({
   );
 }
 
+// ─── Full Project View Panel ──────────────────────────────────────────────────
+function FullProjectPanel({
+  nodes,
+  financialKPIs,
+  bmcData,
+  projectName,
+  projectType,
+  language,
+  onClose,
+  onNavigate,
+}: {
+  nodes: SceneNode[];
+  financialKPIs: FinancialKPIs | null | undefined;
+  bmcData: BMCData | null | undefined;
+  projectName: string;
+  projectType?: string;
+  language: string;
+  onClose: () => void;
+  onNavigate?: (levelId: number) => void;
+}) {
+  const isAr = language === 'ar';
+  const completedCount = nodes.filter(n =>
+    n.status === 'graded' || n.status === 'submitted' || n.progress >= 1,
+  ).length;
+  const overallPct = nodes.length > 0
+    ? Math.round((nodes.reduce((s, n) => s + n.progress, 0) / nodes.length) * 100)
+    : 0;
+  const totalXp = nodes.reduce((s, n) => s + n.xp, 0);
+  const maxTotalXp = nodes.reduce((s, n) => s + n.maxXp, 0);
+
+  const bmcFilledCount = bmcData
+    ? Object.values(bmcData).filter(v => Array.isArray(v) && v.length > 0).length
+    : 0;
+  const bmcTotal = 9;
+
+  const projectTypeLabels: Record<string, { en: string; ar: string }> = {
+    agricultural: { en: 'Agricultural', ar: 'زراعي' },
+    industrial:   { en: 'Industrial',   ar: 'صناعي' },
+    commercial:   { en: 'Commercial',   ar: 'تجاري' },
+    service:      { en: 'Service',      ar: 'خدمي' },
+  };
+  const typeLabel = projectType
+    ? (isAr ? projectTypeLabels[projectType]?.ar : projectTypeLabels[projectType]?.en) ?? projectType
+    : null;
+
+  // SVG progress arc
+  const arcR = 28;
+  const arcCirc = 2 * Math.PI * arcR;
+  const arcDash = (overallPct / 100) * arcCirc;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -300 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -300 }}
+      transition={{ type: 'spring', damping: 24, stiffness: 200 }}
+      className="absolute top-0 left-0 bottom-0 w-72 z-20 flex flex-col overflow-hidden"
+      style={{
+        background: `linear-gradient(180deg, ${TOKEN.navy}f5 0%, ${TOKEN.darkNavy}f5 100%)`,
+        borderRight: `1px solid ${TOKEN.teal}20`,
+        backdropFilter: 'blur(20px)',
+      }}
+    >
+      {/* Panel header */}
+      <div
+        className="flex items-center justify-between px-4 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${TOKEN.teal}15` }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Layers className="w-4 h-4 flex-shrink-0" style={{ color: TOKEN.teal }} />
+          <span className="text-white font-semibold text-sm truncate">
+            {isAr ? 'عرض المشروع الكامل' : 'Full Project View'}
+          </span>
+        </div>
+        <button onClick={onClose} className="text-white/40 hover:text-white/80 transition-colors flex-shrink-0">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* Project identity */}
+        <div className="px-4 py-4 space-y-1" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
+          <p className="text-white font-bold text-sm leading-tight truncate">{projectName}</p>
+          {typeLabel && (
+            <span
+              className="inline-block text-xs px-2 py-0.5 rounded-full"
+              style={{ background: TOKEN.teal + '25', color: TOKEN.teal }}
+            >
+              {typeLabel}
+            </span>
+          )}
+        </div>
+
+        {/* Overall progress */}
+        <div className="px-4 py-4" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
+          <p className="text-white/50 text-xs mb-3">{isAr ? 'التقدم الإجمالي' : 'Overall Progress'}</p>
+          <div className="flex items-center gap-4">
+            {/* Arc gauge */}
+            <svg width="72" height="72" viewBox="0 0 72 72" className="flex-shrink-0">
+              <circle cx="36" cy="36" r={arcR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
+              <circle
+                cx="36" cy="36" r={arcR}
+                fill="none"
+                stroke={TOKEN.teal}
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray={`${arcDash} ${arcCirc}`}
+                transform="rotate(-90 36 36)"
+              />
+              <text x="36" y="40" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold">
+                {overallPct}%
+              </text>
+            </svg>
+            <div className="space-y-2 text-xs">
+              <div>
+                <p className="text-white/40">{isAr ? 'المستويات المكتملة' : 'Levels done'}</p>
+                <p className="text-white font-semibold">{completedCount} / {nodes.length}</p>
+              </div>
+              <div>
+                <p className="text-white/40">{isAr ? 'النقاط' : 'XP earned'}</p>
+                <p className="font-semibold" style={{ color: TOKEN.teal }}>{totalXp} / {maxTotalXp}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Level list */}
+        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
+          <p className="text-white/50 text-xs mb-2">{isAr ? 'المستويات' : 'Levels'}</p>
+          <div className="space-y-1">
+            {nodes.map((node) => (
+              <button
+                key={node.id}
+                onClick={() => node.status !== 'locked' && onNavigate?.(node.levelId)}
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors text-left"
+                style={{ cursor: node.status === 'locked' ? 'default' : 'pointer' }}
+                onMouseOver={(e) => { if (node.status !== 'locked') e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                  style={{ background: node.hexColor, opacity: node.status === 'locked' ? 0.35 : 1 }}
+                >
+                  {node.levelId}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: node.status === 'locked' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.85)' }}>
+                    {isAr ? node.titleAr : node.title}
+                  </p>
+                  <div className="w-full h-0.5 rounded-full bg-white/10 mt-1">
+                    <div className="h-0.5 rounded-full" style={{ width: `${node.progress * 100}%`, background: node.hexColor }} />
+                  </div>
+                </div>
+                {node.status === 'locked'
+                  ? <Lock className="w-3 h-3 text-white/20 flex-shrink-0" />
+                  : <ChevronRight className="w-3 h-3 text-white/30 flex-shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Financial KPIs */}
+        {financialKPIs && (
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <TrendingUp className="w-3.5 h-3.5" style={{ color: TOKEN.cyan }} />
+              <p className="text-white/50 text-xs">{isAr ? 'المؤشرات المالية' : 'Financial KPIs'}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'ROI', labelAr: 'العائد', value: `${financialKPIs.roi?.toFixed(1) ?? '—'}%`, color: TOKEN.teal },
+                { label: 'IRR', labelAr: 'معدل العائد', value: `${financialKPIs.irr?.toFixed(1) ?? '—'}%`, color: TOKEN.cyan },
+                { label: 'NPV', labelAr: 'صافي القيمة', value: financialKPIs.npv != null ? `${(financialKPIs.npv / 1000).toFixed(0)}K` : '—', color: TOKEN.mint },
+                { label: isAr ? 'فترة الاسترداد' : 'Payback', labelAr: 'فترة الاسترداد', value: financialKPIs.paybackPeriod != null ? `${financialKPIs.paybackPeriod.toFixed(1)}y` : '—', color: TOKEN.tealLight },
+              ].map(({ label, labelAr, value, color }) => (
+                <div
+                  key={label}
+                  className="rounded-lg px-2.5 py-2"
+                  style={{ background: color + '12', border: `1px solid ${color}20` }}
+                >
+                  <p className="text-white/40 text-xs">{isAr ? labelAr : label}</p>
+                  <p className="font-bold text-sm leading-tight" style={{ color }}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BMC completion */}
+        {bmcData && (
+          <div className="px-4 py-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Target className="w-3.5 h-3.5" style={{ color: TOKEN.mint }} />
+              <p className="text-white/50 text-xs">{isAr ? 'نموذج الأعمال' : 'Business Model Canvas'}</p>
+            </div>
+            <div
+              className="rounded-lg px-3 py-2.5 flex items-center justify-between"
+              style={{ background: TOKEN.mint + '12', border: `1px solid ${TOKEN.mint}20` }}
+            >
+              <div>
+                <p className="text-white/40 text-xs">{isAr ? 'العناصر المكتملة' : 'Filled blocks'}</p>
+                <p className="font-bold text-sm" style={{ color: TOKEN.mint }}>{bmcFilledCount} / {bmcTotal}</p>
+              </div>
+              <div className="w-12 h-12">
+                <svg viewBox="0 0 40 40">
+                  <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                  <circle
+                    cx="20" cy="20" r="16"
+                    fill="none"
+                    stroke={TOKEN.mint}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(bmcFilledCount / bmcTotal) * 100.53} 100.53`}
+                    transform="rotate(-90 20 20)"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export interface ProjectVisualization3DProps {
   onClose?: () => void;
+  /** When provided, clicking a node's "Open Level" button calls this */
+  onNavigateToLevel?: (levelId: number) => void;
+  /** Compact embedding mode — disables fullscreen toggle */
+  compact?: boolean;
 }
 
-export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps) {
-  const { levels, savedProjects, activeSavedProjectId, language } = useYieldX();
+export function ProjectVisualization3D({
+  onClose,
+  onNavigateToLevel,
+  compact = false,
+}: ProjectVisualization3DProps) {
+  const { levels, savedProjects, activeSavedProjectId, language, financialKPIs, bmcData, setCurrentView } = useYieldX();
   const isAr = language === 'ar';
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const drag = useRef({ active: false, lastX: 0, lastY: 0 });
+  const lastRenderTime = useRef(0);
+  // Track last pointer-down position to distinguish click vs drag
+  const pointerDownPos = useRef({ x: 0, y: 0 });
 
-  // Mutable render state (not React state — updated every frame)
+  const activeProject = useMemo(
+    () => savedProjects.find((p) => p.id === activeSavedProjectId) ?? savedProjects[0] ?? null,
+    [savedProjects, activeSavedProjectId],
+  );
+
+  // Restore saved scene config for this project
+  const savedCfg = useMemo(
+    () => loadSceneConfig(activeProject?.id ?? null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.id],
+  );
+
   const rs = useRef({
-    rx: -0.25,
-    ry: 0.6,
-    zoom: 1,
+    rx: savedCfg.rx,
+    ry: savedCfg.ry,
+    zoom: savedCfg.zoom,
     autoRotate: true,
     selectedId: null as string | null,
     t: 0,
+    isDragging: false,
   });
 
   const [canvasW, setCanvasW] = useState(800);
   const [canvasH, setCanvasH] = useState(480);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showProjectPanel, setShowProjectPanel] = useState(false);
   const [selectedNode, setSelectedNode] = useState<SceneNode | null>(null);
-  const [hasWebGL] = useState(supportsWebGL);
+  const [hasCanvas2D] = useState(supportsCanvas2D);
   const [isAutoRotating, setIsAutoRotating] = useState(true);
-
-  const activeProject = useMemo(
-    () => savedProjects.find((p) => p.id === activeSavedProjectId) ?? savedProjects[0] ?? null,
-    [savedProjects, activeSavedProjectId],
-  );
+  const [tabHidden, setTabHidden] = useState(false);
+  const [canvasVisible, setCanvasVisible] = useState(true);
 
   const nodes = useMemo(() => buildScene(levels), [levels]);
   const edges = useMemo<[number, number][]>(
@@ -650,33 +918,73 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
     return nodes.reduce((sum, n) => sum + n.progress, 0) / nodes.length;
   }, [nodes]);
 
-  // Resize observer
+  const completedCount = nodes.filter(
+    (n) => n.status === 'graded' || n.status === 'submitted' || n.progress >= 1,
+  ).length;
+
+  // ── Resize observer ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const obs = new ResizeObserver((entries) => {
       const e = entries[0];
       if (e) {
-        setCanvasW(Math.floor(e.contentRect.width));
-        setCanvasH(Math.floor(e.contentRect.height));
+        // Cap at 1920×1080 for performance
+        setCanvasW(Math.min(1920, Math.floor(e.contentRect.width)));
+        setCanvasH(Math.min(1080, Math.floor(e.contentRect.height)));
       }
     });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  // Animation loop
+  // ── Tab visibility pause ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = () => setTabHidden(document.hidden);
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
+  // ── Intersection Observer pause (when scrolled off-screen) ───────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setCanvasVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // ── Animation loop ───────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !hasCanvas2D) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     let running = true;
     const state = rs.current;
 
-    function tick() {
+    function tick(timestamp: number) {
       if (!running) return;
+
+      // Pause when tab hidden or off-screen
+      if (tabHidden || !canvasVisible) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // Frame-rate throttle: 20fps idle, 60fps when dragging
+      const targetFPS = state.isDragging ? 60 : 20;
+      const minInterval = 1000 / targetFPS;
+      if (timestamp - lastRenderTime.current < minInterval) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      lastRenderTime.current = timestamp;
+
       state.t += 0.016;
       if (state.autoRotate && !drag.current.active) {
         state.ry += 0.003;
@@ -690,11 +998,21 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
       running = false;
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
-  }, [nodes, edges, canvasW, canvasH]);
+  }, [nodes, edges, canvasW, canvasH, tabHidden, canvasVisible, hasCanvas2D]);
 
-  // ─── Pointer controls ────────────────────────────────────────────────────────
+  // ── Save scene config on unmount / project change ────────────────────────────
+  useEffect(() => {
+    return () => {
+      const { rx, ry, zoom } = rs.current;
+      saveSceneConfig(activeProject?.id ?? null, { rx, ry, zoom });
+    };
+  }, [activeProject?.id]);
+
+  // ── Pointer controls ─────────────────────────────────────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     drag.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+    rs.current.isDragging = true;
     if (rs.current.autoRotate) {
       rs.current.autoRotate = false;
       setIsAutoRotating(false);
@@ -714,6 +1032,34 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
 
   const onPointerUp = useCallback(() => {
     drag.current.active = false;
+    rs.current.isDragging = false;
+  }, []);
+
+  // ── Touch pinch-to-zoom ──────────────────────────────────────────────────────
+  const lastPinchDist = useRef<number | null>(null);
+
+  const onTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+    }
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2 && lastPinchDist.current != null) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const delta = dist / lastPinchDist.current;
+      rs.current.zoom = Math.max(0.25, Math.min(3.5, rs.current.zoom * delta));
+      lastPinchDist.current = dist;
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    lastPinchDist.current = null;
   }, []);
 
   const onWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
@@ -723,7 +1069,13 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
   }, []);
 
   const onClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (drag.current.active) return; // was a drag, not a click
+    // Ignore if pointer moved significantly (was a drag)
+    const moved = Math.hypot(
+      e.clientX - pointerDownPos.current.x,
+      e.clientY - pointerDownPos.current.y,
+    );
+    if (moved > 5) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -747,16 +1099,16 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
     setSelectedNode(hit);
   }, [nodes, canvasW, canvasH]);
 
-  // ─── Control actions ─────────────────────────────────────────────────────────
+  // ── Control actions ──────────────────────────────────────────────────────────
   const resetView = useCallback(() => {
-    rs.current.rx = -0.25;
-    rs.current.ry = 0.6;
-    rs.current.zoom = 1;
+    rs.current.rx = DEFAULT_SCENE.rx;
+    rs.current.ry = DEFAULT_SCENE.ry;
+    rs.current.zoom = DEFAULT_SCENE.zoom;
     rs.current.autoRotate = true;
     setIsAutoRotating(true);
   }, []);
 
-  const zoom = useCallback((delta: number) => {
+  const adjustZoom = useCallback((delta: number) => {
     rs.current.zoom = Math.max(0.25, Math.min(3.5, rs.current.zoom * (1 + delta)));
   }, []);
 
@@ -775,26 +1127,33 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
     link.click();
   }, [activeProject]);
 
-  const completedCount = nodes.filter((n) => n.status === 'graded' || n.status === 'submitted' || n.progress >= 1).length;
+  const handleNavigate = useCallback((levelId: number) => {
+    if (onNavigateToLevel) {
+      onNavigateToLevel(levelId);
+    } else {
+      setCurrentView(`module-${levelId}` as any);
+    }
+  }, [onNavigateToLevel, setCurrentView]);
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
-  const viewer = (
+  // ── Render ───────────────────────────────────────────────────────────────────
+  return (
     <div
-      className={`relative flex flex-col select-none overflow-hidden ${isFullScreen ? 'fixed inset-0 z-[9990]' : 'rounded-2xl'}`}
+      className={`relative flex flex-col select-none overflow-hidden ${
+        isFullScreen && !compact ? 'fixed inset-0 z-[9990]' : 'rounded-2xl'
+      }`}
       style={{ background: TOKEN.darkNavy }}
     >
       {/* ── Top bar ── */}
       <div
-        className="relative z-10 flex items-center justify-between px-4 py-3"
+        className="relative z-10 flex items-center justify-between px-4 py-3 flex-shrink-0"
         style={{ background: `${TOKEN.navy}cc`, backdropFilter: 'blur(12px)', borderBottom: `1px solid ${TOKEN.teal}20` }}
       >
-        {/* Left: project info */}
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: `linear-gradient(135deg, ${TOKEN.teal}, ${TOKEN.cyan})` }}
           >
-            <svg className="w-4 h-4 text-white fill-white" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           </div>
@@ -804,12 +1163,13 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             </p>
             <p className="text-white/40 text-xs">
               {isAr ? 'عرض ثلاثي الأبعاد' : '3D Project View'}
-              {!hasWebGL && <span className="ml-2 opacity-60">{isAr ? '(بديل)' : '(fallback mode)'}</span>}
+              {!hasCanvas2D && (
+                <span className="ml-2 opacity-60">{isAr ? '(بديل)' : '(fallback)'}</span>
+              )}
             </p>
           </div>
         </div>
 
-        {/* Right: stats + actions */}
         <div className="flex items-center gap-2">
           {/* Quick stats */}
           <div className="hidden sm:flex items-center gap-3 mr-2">
@@ -826,6 +1186,22 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             </div>
           </div>
 
+          {/* Full Project View toggle */}
+          <button
+            onClick={() => setShowProjectPanel((v) => !v)}
+            className="p-2 rounded-xl border transition-all"
+            style={{
+              borderColor: showProjectPanel ? TOKEN.teal + '60' : TOKEN.teal + '30',
+              background: showProjectPanel ? `${TOKEN.teal}20` : `${TOKEN.teal}10`,
+              color: showProjectPanel ? TOKEN.teal : 'rgba(255,255,255,0.6)',
+            }}
+            title={isAr ? 'عرض المشروع الكامل' : 'Full Project View'}
+          >
+            {showProjectPanel
+              ? <PanelRightClose className="w-4 h-4" />
+              : <PanelRightOpen className="w-4 h-4" />}
+          </button>
+
           <button
             onClick={() => setShowShare((v) => !v)}
             className="p-2 rounded-xl border transition-all text-white/60 hover:text-white"
@@ -835,14 +1211,16 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             <Share2 className="w-4 h-4" />
           </button>
 
-          <button
-            onClick={() => setIsFullScreen((v) => !v)}
-            className="p-2 rounded-xl border transition-all text-white/60 hover:text-white"
-            style={{ borderColor: TOKEN.teal + '30', background: `${TOKEN.teal}10` }}
-            title={isAr ? 'ملء الشاشة' : 'Full screen'}
-          >
-            {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
+          {!compact && (
+            <button
+              onClick={() => setIsFullScreen((v) => !v)}
+              className="p-2 rounded-xl border transition-all text-white/60 hover:text-white"
+              style={{ borderColor: TOKEN.teal + '30', background: `${TOKEN.teal}10` }}
+              title={isAr ? 'ملء الشاشة' : 'Full screen'}
+            >
+              {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          )}
 
           {onClose && (
             <button
@@ -859,7 +1237,7 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
 
       {/* ── Canvas area ── */}
       <div ref={containerRef} className="relative flex-1 min-h-0 overflow-hidden">
-        {hasWebGL || true /* always use canvas renderer */ ? (
+        {hasCanvas2D ? (
           <canvas
             ref={canvasRef}
             width={canvasW}
@@ -872,6 +1250,9 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             onPointerLeave={onPointerUp}
             onWheel={onWheel}
             onClick={onClick}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
           />
         ) : (
           <FallbackGrid nodes={nodes} language={language} />
@@ -889,9 +1270,26 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             style={{ background: `${TOKEN.navy}cc`, border: `1px solid ${TOKEN.teal}20` }}
           >
             <span>🖱️</span>
-            <span>{isAr ? 'اسحب للتدوير • عجلة التمرير للتكبير • انقر على عقدة للتفاصيل' : 'Drag to orbit • Scroll to zoom • Click a node for details'}</span>
+            <span>
+              {isAr
+                ? 'اسحب للتدوير • عجلة التمرير للتكبير • انقر على عقدة للتفاصيل'
+                : 'Drag to orbit • Scroll to zoom • Click a node for details'}
+            </span>
           </div>
         </motion.div>
+
+        {/* Paused indicator when tab is hidden */}
+        {tabHidden && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/60"
+              style={{ background: `${TOKEN.navy}cc`, border: `1px solid ${TOKEN.teal}15` }}
+            >
+              <Pause className="w-4 h-4" />
+              {isAr ? 'موقوف مؤقتاً' : 'Paused'}
+            </div>
+          </div>
+        )}
 
         {/* Node details panel */}
         <AnimatePresence>
@@ -900,6 +1298,7 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
               node={selectedNode}
               language={language}
               onClose={() => { setSelectedNode(null); rs.current.selectedId = null; }}
+              onNavigate={handleNavigate}
             />
           )}
         </AnimatePresence>
@@ -916,16 +1315,31 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
             />
           )}
         </AnimatePresence>
+
+        {/* Full Project View side panel */}
+        <AnimatePresence>
+          {showProjectPanel && (
+            <FullProjectPanel
+              nodes={nodes}
+              financialKPIs={activeProject?.financialKPIs ?? financialKPIs}
+              bmcData={activeProject?.bmcData ?? bmcData}
+              projectName={activeProject?.name ?? (isAr ? 'مشروعي' : 'My Project')}
+              projectType={activeProject?.projectType}
+              language={language}
+              onClose={() => setShowProjectPanel(false)}
+              onNavigate={handleNavigate}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Bottom control bar ── */}
       <div
-        className="relative z-10 flex items-center justify-center gap-2 px-4 py-2.5"
+        className="relative z-10 flex items-center justify-center gap-2 px-4 py-2.5 flex-shrink-0"
         style={{ background: `${TOKEN.navy}cc`, backdropFilter: 'blur(12px)', borderTop: `1px solid ${TOKEN.teal}20` }}
       >
-        {/* Zoom out */}
         <button
-          onClick={() => zoom(-0.15)}
+          onClick={() => adjustZoom(-0.15)}
           className="p-2 rounded-xl border text-white/60 hover:text-white transition-colors"
           style={{ borderColor: TOKEN.teal + '25', background: `${TOKEN.teal}08` }}
           title={isAr ? 'تصغير' : 'Zoom out'}
@@ -933,7 +1347,6 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
           <ZoomOut className="w-4 h-4" />
         </button>
 
-        {/* Reset */}
         <button
           onClick={resetView}
           className="p-2 rounded-xl border text-white/60 hover:text-white transition-colors"
@@ -943,7 +1356,6 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
           <RotateCcw className="w-4 h-4" />
         </button>
 
-        {/* Auto-rotate toggle */}
         <button
           onClick={toggleAutoRotate}
           className="px-3 py-2 rounded-xl border text-xs font-medium transition-all"
@@ -956,13 +1368,11 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
         >
           {isAutoRotating
             ? <><Pause className="w-3.5 h-3.5 inline mr-1" />{isAr ? 'إيقاف' : 'Pause'}</>
-            : <><Play className="w-3.5 h-3.5 inline mr-1" />{isAr ? 'تشغيل' : 'Play'}</>
-          }
+            : <><Play className="w-3.5 h-3.5 inline mr-1" />{isAr ? 'تشغيل' : 'Play'}</>}
         </button>
 
-        {/* Zoom in */}
         <button
-          onClick={() => zoom(0.15)}
+          onClick={() => adjustZoom(0.15)}
           className="p-2 rounded-xl border text-white/60 hover:text-white transition-colors"
           style={{ borderColor: TOKEN.teal + '25', background: `${TOKEN.teal}08` }}
           title={isAr ? 'تكبير' : 'Zoom in'}
@@ -973,10 +1383,10 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
         {/* Legend */}
         <div className="hidden sm:flex items-center gap-3 ml-4 pl-4 border-l border-white/10 text-xs text-white/40">
           {[
-            { color: TOKEN.teal, label: isAr ? 'مكتمل' : 'Done' },
-            { color: TOKEN.cyan, label: isAr ? 'جارٍ' : 'In progress' },
-            { color: TOKEN.mint, label: isAr ? 'متاح' : 'Available' },
-            { color: '#4a4a6a', label: isAr ? 'مغلق' : 'Locked' },
+            { color: TOKEN.teal,    label: isAr ? 'مكتمل'  : 'Done' },
+            { color: TOKEN.cyan,    label: isAr ? 'جارٍ'   : 'In progress' },
+            { color: TOKEN.mint,    label: isAr ? 'متاح'   : 'Available' },
+            { color: '#4a4a6a',     label: isAr ? 'مغلق'   : 'Locked' },
           ].map(({ color, label }) => (
             <span key={label} className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full inline-block" style={{ background: color }} />
@@ -987,8 +1397,6 @@ export function ProjectVisualization3D({ onClose }: ProjectVisualization3DProps)
       </div>
     </div>
   );
-
-  return viewer;
 }
 
 // ─── Full-Page Wrapper (used by route 'project-3d-view') ─────────────────────
@@ -997,13 +1405,10 @@ export function ProjectVisualization3DPage() {
   const isAr = language === 'ar';
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: TOKEN.darkNavy }}
-    >
+    <div className="min-h-screen flex flex-col" style={{ background: TOKEN.darkNavy }}>
       {/* Slim nav bar */}
       <div
-        className="flex items-center gap-3 px-5 py-3 border-b"
+        className="flex items-center gap-3 px-5 py-3 border-b flex-shrink-0"
         style={{ borderColor: TOKEN.teal + '20', background: `${TOKEN.navy}cc` }}
       >
         <button

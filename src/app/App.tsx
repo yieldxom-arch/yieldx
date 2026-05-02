@@ -59,7 +59,12 @@ import { MigrationButton } from '@/app/components/admin/MigrationButton';
 import { BusinessResources } from '@/app/components/BusinessResources';
 import { Certificate } from '@/app/components/Certificate';
 import { SimpleCertificate } from '@/app/components/SimpleCertificate';
-import { ProjectVisualization3DPage } from '@/app/components/visualization/ProjectVisualization3D';
+// Lazy-loaded for code-splitting — the 3D canvas renderer is heavy
+const ProjectVisualization3DPage = React.lazy(() =>
+  import('@/app/components/visualization/ProjectVisualization3D').then((m) => ({
+    default: m.ProjectVisualization3DPage,
+  })),
+);
 
 function ConnectivityBanner() {
   const { isOnline } = useYieldX();
@@ -192,7 +197,23 @@ function AppContent() {
       case 'module-7':
         return <BMCImplementationModule />;
       case 'project-3d-view':
-        return <ProjectVisualization3DPage />;
+        return (
+          <React.Suspense
+            fallback={
+              <div style={{ minHeight: '100vh', background: '#0F0F25', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: 40, height: 40, border: '3px solid #4ECDC440', borderTop: '3px solid #4ECDC4', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ color: '#4ECDC4', fontSize: '13px', opacity: 0.7 }}>
+                    {language === 'ar' ? 'جارٍ تحميل العرض ثلاثي الأبعاد…' : 'Loading 3D view…'}
+                  </span>
+                </div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            }
+          >
+            <ProjectVisualization3DPage />
+          </React.Suspense>
+        );
       case 'business-resources':
         return <BusinessResources />;
       case 'certificate':
