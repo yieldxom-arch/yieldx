@@ -236,6 +236,21 @@ export function ProfessionalDashboard() {
                 </>
               )}
 
+              {/* 3D Project Visualization button */}
+              <Button
+                variant="outline"
+                onClick={() => setCurrentView('project-3d-view')}
+                className="bg-[#7FDBCA]/10 border-[#7FDBCA]/40 hover:bg-[#7FDBCA]/20 hover:border-[#7FDBCA]/60 text-[#7FDBCA]"
+              >
+                {/* Custom 3D cube icon */}
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2l9 5v10l-9 5-9-5V7z" />
+                  <polyline points="3 7 12 12 21 7" />
+                  <line x1="12" y1="12" x2="12" y2="22" />
+                </svg>
+                {language === 'ar' ? 'عرض ثلاثي الأبعاد' : '3D View'}
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={() => setCurrentView('workspaces')}
@@ -591,6 +606,71 @@ export function ProfessionalDashboard() {
             </Card>
           </motion.div>
         </div>
+
+        {/* 3D Project Visualization Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="mb-8"
+        >
+          <Card
+            className="bg-gradient-to-r from-[#0F0F25] to-[#1B1B3A] border-[#4ECDC4]/40 backdrop-blur-sm p-6 cursor-pointer hover:border-[#4ECDC4]/70 transition-all group shadow-xl shadow-[#4ECDC4]/10 overflow-hidden relative"
+            onClick={() => setCurrentView('project-3d-view')}
+          >
+            {/* Animated background orbs */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-20"
+                style={{ background: 'radial-gradient(circle, #4ECDC4 0%, transparent 70%)' }} />
+              <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-15"
+                style={{ background: 'radial-gradient(circle, #7FDBCA 0%, transparent 70%)' }} />
+            </div>
+            <div className="relative z-10 flex items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <motion.div
+                  className="rounded-2xl p-3.5 shadow-lg shadow-[#4ECDC4]/30 flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #4ECDC4, #7FDBCA)' }}
+                  whileHover={{ scale: 1.08, rotate: 8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* 3D cube icon */}
+                  <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l9 5v10l-9 5-9-5V7z" />
+                    <polyline points="3 7 12 12 21 7" />
+                    <line x1="12" y1="12" x2="12" y2="22" />
+                  </svg>
+                </motion.div>
+                <div>
+                  <h3 className="text-white text-xl font-bold mb-1">
+                    {language === 'ar' ? 'عرض المشروع ثلاثي الأبعاد' : '3D Project Visualization'}
+                  </h3>
+                  <p className="text-[#7FDBCA] text-sm">
+                    {language === 'ar'
+                      ? 'استكشف مستويات مشروعك بشكل تفاعلي ثلاثي الأبعاد • دوران • تكبير • مشاركة'
+                      : 'Explore your project levels interactively in 3D • Orbit • Zoom • Share'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {['WebGL', language === 'ar' ? 'تفاعلي' : 'Interactive', language === 'ar' ? 'قابل للمشاركة' : 'Shareable'].map((tag) => (
+                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ background: 'rgba(78,205,196,0.15)', color: '#4ECDC4', border: '1px solid rgba(78,205,196,0.3)' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Button
+                className="shrink-0 font-semibold px-6 py-5 shadow-lg group-hover:shadow-xl transition-all"
+                style={{ background: 'linear-gradient(135deg, #4ECDC4, #5DD9C1)', color: '#fff' }}
+              >
+                {language === 'ar' ? 'فتح العرض' : 'Open Viewer'}
+                <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
 
         {/* NEW FEATURES: Leaderboard, Messaging, Professional Consultation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

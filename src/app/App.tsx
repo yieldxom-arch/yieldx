@@ -59,6 +59,7 @@ import { MigrationButton } from '@/app/components/admin/MigrationButton';
 import { BusinessResources } from '@/app/components/BusinessResources';
 import { Certificate } from '@/app/components/Certificate';
 import { SimpleCertificate } from '@/app/components/SimpleCertificate';
+import { ProjectVisualization3DPage } from '@/app/components/visualization/ProjectVisualization3D';
 
 function ConnectivityBanner() {
   const { isOnline } = useYieldX();
@@ -190,6 +191,8 @@ function AppContent() {
       // Level 7: Business Model Canvas & Oman 2040 Contribution
       case 'module-7':
         return <BMCImplementationModule />;
+      case 'project-3d-view':
+        return <ProjectVisualization3DPage />;
       case 'business-resources':
         return <BusinessResources />;
       case 'certificate':

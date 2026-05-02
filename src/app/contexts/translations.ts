@@ -600,6 +600,36 @@ export interface Translations {
     incorrectPassword: string;
     loginFailed: string;
   };
+
+  // 3D Project Visualization
+  visualization3D: {
+    title: string;
+    subtitle: string;
+    backToDashboard: string;
+    openViewer: string;
+    fullProjectView: string;
+    orbit: string;
+    zoom: string;
+    reset: string;
+    autoRotate: string;
+    pause: string;
+    play: string;
+    share: string;
+    download: string;
+    shareLink: string;
+    embedCode: string;
+    downloadPng: string;
+    levelDetails: string;
+    progress: string;
+    xp: string;
+    grade: string;
+    statusDone: string;
+    statusInProgress: string;
+    statusAvailable: string;
+    statusLocked: string;
+    hint: string;
+    noWebGLNotice: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -1175,6 +1205,34 @@ export const translations: Record<Language, Translations> = {
       incorrectPassword: 'كلمة المرور غير صحيحة',
       loginFailed: 'فشل تسجيل الدخول',
     },
+    visualization3D: {
+      title: 'عرض المشروع ثلاثي الأبعاد',
+      subtitle: 'استكشف مشروعك بشكل تفاعلي ثلاثي الأبعاد',
+      backToDashboard: 'رجوع إلى لوحة التحكم',
+      openViewer: 'عرض ثلاثي الأبعاد',
+      fullProjectView: 'عرض المشروع الكامل',
+      orbit: 'تدوير',
+      zoom: 'تكبير/تصغير',
+      reset: 'إعادة الضبط',
+      autoRotate: 'تدوير تلقائي',
+      pause: 'إيقاف',
+      play: 'تشغيل',
+      share: 'مشاركة',
+      download: 'تحميل',
+      shareLink: 'رابط المشاركة',
+      embedCode: 'كود التضمين',
+      downloadPng: 'تحميل صورة PNG',
+      levelDetails: 'تفاصيل المستوى',
+      progress: 'التقدم',
+      xp: 'النقاط',
+      grade: 'الدرجة',
+      statusDone: 'مكتمل',
+      statusInProgress: 'قيد التنفيذ',
+      statusAvailable: 'متاح',
+      statusLocked: 'مغلق',
+      hint: 'اسحب للتدوير • عجلة التمرير للتكبير • انقر على عقدة للتفاصيل',
+      noWebGLNotice: 'وضع بديل — WebGL غير مدعوم في هذا الجهاز',
+    },
   },
   en: {
     common: {
@@ -1747,6 +1805,34 @@ export const translations: Record<Language, Translations> = {
       emailNotFound: 'Email not found',
       incorrectPassword: 'Incorrect password',
       loginFailed: 'Login failed',
+    },
+    visualization3D: {
+      title: '3D Project Visualization',
+      subtitle: 'Explore your project interactively in 3D',
+      backToDashboard: 'Back to Dashboard',
+      openViewer: '3D View',
+      fullProjectView: 'Full Project View',
+      orbit: 'Orbit',
+      zoom: 'Zoom',
+      reset: 'Reset View',
+      autoRotate: 'Auto-Rotate',
+      pause: 'Pause',
+      play: 'Play',
+      share: 'Share',
+      download: 'Download',
+      shareLink: 'Share link',
+      embedCode: 'Embed code',
+      downloadPng: 'Download PNG snapshot',
+      levelDetails: 'Level Details',
+      progress: 'Progress',
+      xp: 'XP',
+      grade: 'Grade',
+      statusDone: 'Done',
+      statusInProgress: 'In Progress',
+      statusAvailable: 'Available',
+      statusLocked: 'Locked',
+      hint: 'Drag to orbit • Scroll to zoom • Click a node for details',
+      noWebGLNotice: 'Fallback mode — WebGL not supported on this device',
     },
   },
 };
