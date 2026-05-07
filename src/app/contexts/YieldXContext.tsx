@@ -1026,52 +1026,7 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
 
-  // User Registration System - Load from localStorage
-  const getRegisteredUsers = (): Array<{email: string; password: string; role: UserRole; name: string}> => {
-    const stored = localStorage.getItem('yieldx_registered_users');
-    const users = stored ? JSON.parse(stored) : [];
-    
-    // ALWAYS ensure demo accounts exist as fallback
-    const defaultAccounts = [
-      { email: 'demo.student@yieldx.com', password: 'demo123', role: 'student' as UserRole, name: 'Demo Student' },
-      { email: 'demo.teacher@yieldx.com', password: 'demo123', role: 'lecturer' as UserRole, name: 'Demo Teacher' },
-      { email: 'admin@yieldx.com', password: 'admin123', role: 'admin' as UserRole, name: 'System Admin' },
-      // Custom accounts
-      { email: 'alhashmisaid23@gmail.com', password: 'password123', role: 'student' as UserRole, name: 'Said Al Hashmi' },
-      { email: 'alhashmisaid21@gmail.com', password: 'password123', role: 'student' as UserRole, name: 'Said Al Hashmi 21' },
-    ];
-    
-    // Merge demo accounts with stored users (avoid duplicates)
-    const allUsers = [...defaultAccounts];
-    users.forEach((user: any) => {
-      if (!allUsers.find(u => u.email.toLowerCase() === user.email.toLowerCase())) {
-        allUsers.push(user);
-      }
-    });
-    
-    return allUsers;
-  };
-
-  // Get ONLY stored users (no demo accounts) - used for saving
-  const getStoredUsersOnly = (): Array<{email: string; password: string; role: UserRole; name: string}> => {
-    const stored = localStorage.getItem('yieldx_registered_users');
-    return stored ? JSON.parse(stored) : [];
-  };
-
-  const saveRegisteredUsers = (users: Array<{email: string; password: string; role: UserRole; name: string}>) => {
-    // Filter out demo accounts before saving (they should never be in localStorage)
-    const demoEmails = [
-      'demo.student@yieldx.com', 
-      'demo.teacher@yieldx.com', 
-      'admin@yieldx.com',
-      'alhashmisaid23@gmail.com',
-      'alhashmisaid21@gmail.com'
-    ];
-    const filteredUsers = users.filter(u => !demoEmails.includes(u.email.toLowerCase()));
-    localStorage.setItem('yieldx_registered_users', JSON.stringify(filteredUsers));
-    console.log(`💾 Saved ${filteredUsers.length} user account(s) to database`);
-  };
-
+  // Legacy local registration storage removed. Supabase Auth handles user credentials now.
   const normalizeUserRole = (incomingRole: string): UserRole => {
     if (incomingRole === 'teacher') return 'lecturer';
     const normalized = incomingRole?.toLowerCase();
@@ -1079,6 +1034,39 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       return normalized as UserRole;
     }
     return 'student';
+  };
+
+  const fetchSupabaseUserProfile = async (userId: string): Promise<User | null> => {
+    try {
+      const { data: profile, error: profileError } = await sbClient
+        .from('users')
+        .select('id, name, email, role, avatar_url, total_xp, current_level, profile_visibility, country, university, bio')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        return null;
+      }
+
+      return {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        role: normalizeUserRole(profile.role),
+        avatarUrl: profile.avatar_url,
+        total_xp: profile.total_xp,
+        current_level: profile.current_level,
+        profileVisibility: profile.profile_visibility,
+        country: profile.country,
+        university: profile.university,
+        bio: profile.bio,
+        subscriptionTier: 'free',
+        maxProjects: 1,
+      };
+    } catch (e) {
+      console.warn('⚠️ Failed to fetch Supabase user profile:', e);
+      return null;
+    }
   };
 
   const isNetworkError = (error: unknown): boolean => {
@@ -1191,9 +1179,56 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
   }, []);
   // ────────────────────────────────────────────────────────────────────────────
 
-  // Load data from localStorage on mount
+  // Load persisted UI data and restore Supabase session on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('yieldx_user');
+    const foundOldAuthKey = localStorage.getItem('yieldx_registered_users');
+    if (foundOldAuthKey) {
+      console.warn(
+        '⚠️ Old YieldX auth data detected in localStorage. This app now uses Supabase Auth and ignores legacy credentials.',
+        foundOldAuthKey
+      );
+    }
+
+    const initializeAuth = async () => {
+      try {
+        const { data: sessionData, error: sessionError } = await sbClient.auth.getSession();
+        if (sessionError) {
+          console.warn('⚠️ Supabase session check failed:', sessionError.message || sessionError);
+          return;
+        }
+
+        const session = sessionData?.session;
+        if (session?.user) {
+          const profile = await fetchSupabaseUserProfile(session.user.id);
+          if (profile) {
+            setUser(profile);
+            setCurrentView('dashboard');
+            flushPendingSync();
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to restore Supabase session:', error);
+      }
+    };
+
+    initializeAuth();
+
+    const { data: authSubscription } = sbClient.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await fetchSupabaseUserProfile(session.user.id);
+        if (profile) {
+          setUser(profile);
+          setCurrentView('dashboard');
+          flushPendingSync();
+        }
+      }
+
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        setCurrentView('auth');
+      }
+    });
+
     const savedLevels = localStorage.getItem('yieldx_levels');
     const savedModuleData = localStorage.getItem('yieldx_module_data');
     const savedWorkspaces = localStorage.getItem('yieldx_workspaces');
@@ -1201,52 +1236,13 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
     const savedCohorts = localStorage.getItem('yieldx_cohorts');
     const savedAnnouncements = localStorage.getItem('yieldx_announcements');
 
-    // Initialize authentication system
-    const storedUsers = getStoredUsersOnly();
-    const allUsers = getRegisteredUsers();
-    
-    console.log('✅ YieldX Authentication System Ready');
-    console.log(`📊 Total accounts available: ${allUsers.length} (5 demo + ${storedUsers.length} registered)`);
-    console.log('📧 Demo accounts:');
-    console.log('   • demo.student@yieldx.com / demo123 (Student)');
-    console.log('   • demo.teacher@yieldx.com / demo123 (Teacher)');
-    console.log('   • admin@yieldx.com / admin123 (Admin)');
-    console.log('   • alhashmisaid23@gmail.com / password123 (Student)');
-    console.log('   • alhashmisaid21@gmail.com / password123 (Student)');
-    if (storedUsers.length > 0) {
-      console.log(`📧 Registered accounts: ${storedUsers.length}`);
-      storedUsers.forEach(u => console.log(`   • ${u.email} (${u.role})`));
-    }
-
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        // Migrate old 'entrepreneur' role to 'student'
-        if (parsedUser.role === 'entrepreneur') {
-          parsedUser.role = 'student';
-        }
-        // Validate role is one of the allowed values
-        const validRoles: UserRole[] = ['lecturer', 'student', 'admin', 'organization'];
-        if (validRoles.includes(parsedUser.role)) {
-          setUser(parsedUser);
-          setCurrentView('dashboard');
-          // If the user has a Supabase UUID (not local_...) and is online, try to sync pending
-          if (!parsedUser.id.startsWith('local_') && navigator.onLine) {
-            setTimeout(() => flushPendingSync(), 2000);
-          }
-        } else {
-          // Invalid role, clear localStorage
-          localStorage.removeItem('yieldx_user');
-        }
-      } catch (e) {
-        // Invalid JSON, clear localStorage
-        localStorage.removeItem('yieldx_user');
-      }
-    }
     if (savedLevels) setLevels(JSON.parse(savedLevels));
     if (savedModuleData) setModuleData(JSON.parse(savedModuleData));
+    if (savedWorkspaces) setWorkspaces(JSON.parse(savedWorkspaces));
+    if (savedMessages) setMessages(JSON.parse(savedMessages));
+    if (savedCohorts) setCohorts(JSON.parse(savedCohorts));
+    if (savedAnnouncements) setAnnouncements(JSON.parse(savedAnnouncements));
 
-    // Load new 7-level system data
     const savedProjectType = localStorage.getItem('yieldx_project_type');
     const savedStudyMode = localStorage.getItem('yieldx_study_mode');
     const savedSWOT = localStorage.getItem('yieldx_enhanced_swot');
@@ -1261,27 +1257,10 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
     if (savedBMC) setBmcData(JSON.parse(savedBMC));
     if (savedOman2040) setOman2040(JSON.parse(savedOman2040));
 
-    // Load saved projects (after user is set via savedUser)
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        const userId = parsedUser.id;
-        const savedProjectsData = localStorage.getItem(`yieldx_saved_projects_${userId}`);
-        if (savedProjectsData) setSavedProjects(JSON.parse(savedProjectsData));
-        const savedActiveProjectId = localStorage.getItem(`yieldx_active_project_${userId}`);
-        if (savedActiveProjectId) setActiveSavedProjectId(savedActiveProjectId);
-      } catch (e) {}
-    }
+    return () => {
+      authSubscription?.subscription.unsubscribe();
+    };
   }, []);
-
-  // Save data to localStorage
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('yieldx_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('yieldx_user');
-    }
-  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('yieldx_levels', JSON.stringify(levels));
@@ -1404,161 +1383,60 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // ── HYBRID: Try Supabase first if online ─────────────────────────────────
-    if (navigator.onLine) {
-      console.log('🌐 ONLINE login attempt via Supabase:', email);
-      try {
-        const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-        if (error) {
-          const message = error.message || String(error);
-          const networkError = isNetworkError(error);
-          if (networkError) {
-            console.warn('⚠️ Supabase login network error, trying local fallback:', message);
-          } else {
-            console.error('❌ ERROR: Supabase login failed:', message);
-            return false;
-          }
-        } else if (!data?.user) {
-          console.error('❌ ERROR: Supabase login returned no user for', email);
-          return false;
-        }
-
-        if (data?.user) {
-          const supabaseId = data.user.id;
-          const userMeta = data.user.user_metadata || {};
-          const effectiveRole: UserRole = (userMeta.role as UserRole) || role;
-          const name = userMeta.full_name || email.split('@')[0];
-
-          const newUser: User = {
-            id: supabaseId,
-            name,
-            email,
-            role: effectiveRole,
-            subscriptionTier: 'free',
-            maxProjects: 1,
-          };
-
-          setUser(newUser);
-          setCurrentView('dashboard');
-
-          // Merge server projects with localStorage projects
-          const [serverProjects, localStr] = await Promise.all([
-            fetchProjectsFromServer(supabaseId),
-            Promise.resolve(localStorage.getItem(`yieldx_saved_projects_${supabaseId}`)),
-          ]);
-          const localProjects: any[] = localStr ? JSON.parse(localStr) : [];
-          // Merge: server is source of truth, add any local-only ones
-          const merged = [...serverProjects];
-          localProjects.forEach(lp => {
-            if (!merged.find((sp: any) => sp.id === lp.id)) merged.push(lp);
-          });
-          if (merged.length > 0) setSavedProjects(merged);
-
-          // Restore active project ID
-          const savedActiveId = localStorage.getItem(`yieldx_active_project_${supabaseId}`);
-          if (savedActiveId) setActiveSavedProjectId(savedActiveId);
-
-          // Flush any pending sync
-          flushPendingSync();
-
-          console.log('✅ USER LOGGED IN (ONLINE/Supabase):', newUser);
-          return true;
-        }
-      } catch (e) {
-        if (isNetworkError(e)) {
-          console.warn('⚠️ Supabase login network error, trying local fallback:', e);
-        } else {
-          console.error('❌ ERROR: Supabase login exception:', e);
-          return false;
-        }
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // OFFLINE FALLBACK: authenticate using localStorage user database
-    console.log('📴 OFFLINE login attempt:', { email, role });
-    const allUsers = getRegisteredUsers();
-    const registeredUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!registeredUser || registeredUser.password !== password) {
-      console.error('❌ LOGIN FAILED: Invalid credentials');
+    if (!navigator.onLine) {
+      console.error('❌ LOGIN FAILED: Supabase Auth requires an internet connection');
       return false;
     }
 
-    // Use the stored role (ignore login-screen selector for role mismatches)
-    const effectiveRole = registeredUser.role;
-
-    const newUser: User = {
-      id: `local_${btoa(email).replace(/=/g, '').slice(0, 12)}`,
-      name: registeredUser.name,
-      email: registeredUser.email,
-      role: effectiveRole,
-      subscriptionTier: 'free',
-      maxProjects: 1,
-    };
-
-    setUser(newUser);
-    setCurrentView('dashboard');
-
-    // Load saved projects from localStorage
-    const localStr = localStorage.getItem(`yieldx_saved_projects_${newUser.id}`);
-    if (localStr) {
-      try { setSavedProjects(JSON.parse(localStr)); } catch(e) {}
-    }
-    const userActiveProject = localStorage.getItem(`yieldx_active_project_${newUser.id}`);
-    if (userActiveProject) setActiveSavedProjectId(userActiveProject);
-
-    // Load demo student data if applicable
-    if (isDemoStudent(email)) {
-      const demoData = getDemoStudentData(email);
-      if (demoData) {
-        console.log('🎭 Loading demo student sample data...');
-        const demoWorkspaces = demoData.projects.map(project => ({
-          id: project.id,
-          name: project.name,
-          description: project.level0.description,
-          mode: 'individual' as WorkspaceMode,
-          createdBy: newUser.id,
-          createdByName: newUser.name,
-          classCode: '',
-          qrCode: '',
-          templateData: {},
-          isTemplate: false,
-          createdAt: project.createdAt,
-            status: project.status === 'completed' ? 'completed' : project.status === 'in_progress' ? 'active' : 'draft',
-          })) as Workspace[];
-          setWorkspaces(demoWorkspaces);
-          
-          // Set active workspace to the in-progress project
-          const activeWorkspace = demoWorkspaces.find(w => w.isActive) || demoWorkspaces[0];
-          setCurrentWorkspace(activeWorkspace);
-          
-          // Load demo progress data
-          setLevels(demoData.progress.levels);
-          
-          // Load demo module data for all projects
-          const demoModuleData: Record<string, any> = {};
-          demoData.projects.forEach(project => {
-            // Store each level's data
-            for (let i = 0; i <= 7; i++) {
-              const levelKey = `level${i}`;
-              if (project[levelKey as keyof typeof project]) {
-                demoModuleData[`${project.id}_${levelKey}`] = project[levelKey as keyof typeof project];
-              }
-            }
-          });
-          setModuleData(demoModuleData);
-          
-          console.log('✅ Demo student data loaded:', {
-            projects: demoData.projects.length,
-            totalXP: demoData.progress.totalXP,
-            badges: demoData.progress.badges.length,
-          });
-        }
+    console.log('🌐 ONLINE login attempt via Supabase:', email);
+    try {
+      const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error('❌ ERROR: Supabase login failed:', error.message || error);
+        return false;
       }
-      
-    console.log('✅ USER LOGGED IN (OFFLINE):', newUser);
-    return true;
+      if (!data?.user) {
+        console.error('❌ ERROR: Supabase login returned no user for', email);
+        return false;
+      }
+
+      const supabaseId = data.user.id;
+      const profile = await fetchSupabaseUserProfile(supabaseId);
+      const userMeta = data.user.user_metadata || {};
+
+      const newUser: User = profile || {
+        id: supabaseId,
+        name: (userMeta.full_name as string) || email.split('@')[0],
+        email,
+        role: normalizeUserRole(userMeta.role || role),
+        subscriptionTier: 'free',
+        maxProjects: 1,
+      };
+
+      setUser(newUser);
+      setCurrentView('dashboard');
+
+      const [serverProjects, localStr] = await Promise.all([
+        fetchProjectsFromServer(supabaseId),
+        Promise.resolve(localStorage.getItem(`yieldx_saved_projects_${supabaseId}`)),
+      ]);
+      const localProjects: any[] = localStr ? JSON.parse(localStr) : [];
+      const merged = [...serverProjects];
+      localProjects.forEach((lp) => {
+        if (!merged.find((sp: any) => sp.id === lp.id)) merged.push(lp);
+      });
+      if (merged.length > 0) setSavedProjects(merged);
+
+      const savedActiveId = localStorage.getItem(`yieldx_active_project_${supabaseId}`);
+      if (savedActiveId) setActiveSavedProjectId(savedActiveId);
+
+      flushPendingSync();
+      console.log('✅ USER LOGGED IN (ONLINE/Supabase):', newUser);
+      return true;
+    } catch (e) {
+      console.error('❌ ERROR: Supabase login exception:', e);
+      return false;
+    }
   };
 
   const register = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
@@ -1572,154 +1450,89 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // ── HYBRID: Try Supabase server signup when online ────────────────────────
-    if (navigator.onLine) {
-      const normalizedRole = normalizeUserRole(role);
-      console.log('🌐 Calling supabase.auth.signUp...', { email, name, role: normalizedRole });
-      try {
-        const { data: authData, error: authError } = await sbClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              role: normalizedRole,
-            },
-          },
-        });
-
-        if (authError) {
-          const message = authError.message || String(authError);
-          const networkError = isNetworkError(authError);
-          console.error('❌ ERROR: supabase.auth.signUp failed for', email, message);
-          if (!networkError) return false;
-          console.warn('⚠️ Supabase signup network error, trying local fallback:', message);
-        } else if (!authData?.user) {
-          console.error('❌ ERROR: supabase.auth.signUp returned no user for', email);
-          return false;
-        } else {
-          console.log('✅ Auth user created:', email);
-          console.log('📝 Inserting profile into public.users...');
-
-          const normalizedRoleInsert = normalizeUserRole(role);
-          const { data: profileData, error: profileError } = await sbClient
-            .from('users')
-            .insert({ id: authData.user.id, email, name, role: normalizedRoleInsert })
-            .select()
-            .single();
-
-          if (profileError) {
-            console.error(`❌ ERROR: Failed to insert public.users profile for ${email}:`, profileError.message || profileError);
-            return false;
-          }
-
-          console.log('✅ Profile created successfully');
-          const newUserContext: User = {
-            id: authData.user.id,
-            name,
-            email,
-            role: normalizedRoleInsert,
-            subscriptionTier: 'free',
-            maxProjects: 1,
-          };
-
-          // Also store locally for offline fallback
-          const newUserRecord = { email, password, role: normalizedRoleInsert, name };
-          const storedUsers = getStoredUsersOnly();
-          if (!storedUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase())) {
-            saveRegisteredUsers([...storedUsers, newUserRecord]);
-          }
-
-          setUser(newUserContext);
-          setCurrentView('dashboard');
-          console.log('✅ USER REGISTERED (ONLINE/Supabase):', newUserContext);
-          return true;
-        }
-      } catch (e) {
-        if (isNetworkError(e)) {
-          console.warn('⚠️ Supabase signup network error, trying local fallback:', e);
-        } else {
-          console.error('❌ ERROR: Supabase signup exception for', email, e);
-          return false;
-        }
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // OFFLINE FALLBACK: register directly in localStorage user database
-    console.log('📴 OFFLINE registration:', { email, name, role });
-
-    const allUsers = getRegisteredUsers();
-    const existingUser = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (existingUser) {
-      console.error('❌ Email already exists');
+    if (!navigator.onLine) {
+      console.error('❌ REGISTRATION FAILED: Supabase Auth requires an internet connection');
       return false;
     }
 
-    // Save new user to localStorage
-    const newUserRecord = { email, password, role, name };
-    const storedUsers = getStoredUsersOnly();
-    saveRegisteredUsers([...storedUsers, newUserRecord]);
+    const normalizedRole = normalizeUserRole(role);
+    if (normalizedRole === 'admin') {
+      console.error('❌ REGISTRATION FAILED: admin role is not allowed on public signup');
+      return false;
+    }
 
-    const userId = `local_${btoa(email).replace(/=/g, '').slice(0, 12)}`;
-    const newUserContext: User = {
-      id: userId,
-      name,
-      email,
-      role,
-      subscriptionTier: 'free',
-      maxProjects: 1,
-    };
-    setUser(newUserContext);
-    setCurrentView('dashboard');
-    console.log('✅ USER REGISTERED (OFFLINE):', newUserContext);
-    return true;
+    console.log('🌐 Calling supabase.auth.signUp...', { email, name, role: normalizedRole });
+    try {
+      const { data: authData, error: authError } = await sbClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            role: normalizedRole,
+          },
+        },
+      });
+
+      if (authError) {
+        console.error('❌ ERROR: supabase.auth.signUp failed for', email, authError.message || authError);
+        return false;
+      }
+      if (!authData?.user) {
+        console.error('❌ ERROR: supabase.auth.signUp returned no user for', email);
+        return false;
+      }
+
+      console.log('✅ Auth user created:', email);
+      console.log('📝 Inserting profile into public.users...');
+
+      const { data: profileData, error: profileError } = await sbClient
+        .from('users')
+        .insert({ id: authData.user.id, email, name, role: normalizedRole })
+        .select()
+        .single();
+
+      if (profileError || !profileData) {
+        console.error(`❌ ERROR: Failed to insert public.users profile for ${email}:`, profileError?.message || profileError);
+        return false;
+      }
+
+      console.log('✅ Profile created successfully');
+      const newUserContext: User = {
+        id: authData.user.id,
+        name,
+        email,
+        role: normalizedRole,
+        subscriptionTier: 'free',
+        maxProjects: 1,
+      };
+
+      setUser(newUserContext);
+      setCurrentView('dashboard');
+      flushPendingSync();
+      console.log('✅ USER REGISTERED (ONLINE/Supabase):', newUserContext);
+      return true;
+    } catch (e) {
+      console.error('❌ ERROR: Supabase signup exception for', email, e);
+      return false;
+    }
   };
 
-  const logout = () => {
-    // Sign out from Supabase if online
-    if (navigator.onLine) {
-      sbClient.auth.signOut().catch(() => {});
+  const logout = async () => {
+    try {
+      await sbClient.auth.signOut();
+    } catch (e) {
+      console.warn('⚠️ Supabase signOut failed:', e);
     }
-    // ⚠️ IMPORTANT: Preserve registered users database and settings when logging out
-    const registeredUsers = localStorage.getItem('yieldx_registered_users');
-    const savedLanguage = localStorage.getItem('yieldx_language');
-    const savedTheme = localStorage.getItem('yieldx_theme');
-    // Preserve saved projects for each user (keyed by userId)
-    const savedProjectsKeys = Object.keys(localStorage).filter(k => k.startsWith('yieldx_saved_projects_'));
-    const savedProjectsData: Record<string, string> = {};
-    savedProjectsKeys.forEach(k => { savedProjectsData[k] = localStorage.getItem(k) || ''; });
-    // Preserve active project IDs for each user
-    const activeProjectKeys = Object.keys(localStorage).filter(k => k.startsWith('yieldx_active_project_'));
-    const activeProjectData: Record<string, string> = {};
-    activeProjectKeys.forEach(k => { activeProjectData[k] = localStorage.getItem(k) || ''; });
-    
+
     setUser(null);
     setCurrentView('auth');
     setLevels(INITIAL_LEVELS);
     setModuleData({});
     setSavedProjects([]);
     setActiveSavedProjectId(null);
-    
-    // Clear all localStorage data
-    localStorage.clear();
-    
-    // ✅ Restore registered users database and user preferences
-    if (registeredUsers) {
-      localStorage.setItem('yieldx_registered_users', registeredUsers);
-      const users = JSON.parse(registeredUsers);
-      console.log(`✅ Logged out successfully. ${users.length} user account(s) preserved.`);
-    } else {
-      console.log('✅ Logged out successfully. Demo accounts available.');
-    }
-    
-    // Restore language and theme preferences
-    if (savedLanguage) localStorage.setItem('yieldx_language', savedLanguage);
-    if (savedTheme) localStorage.setItem('yieldx_theme', savedTheme);
-    // Restore saved projects per user
-    Object.entries(savedProjectsData).forEach(([k, v]) => { if (v) localStorage.setItem(k, v); });
-    // Restore active project IDs per user
-    Object.entries(activeProjectData).forEach(([k, v]) => { if (v) localStorage.setItem(k, v); });
+
+    localStorage.removeItem('yieldx_registered_users');
   };
 
   const updateUser = (updates: Partial<User>) => {

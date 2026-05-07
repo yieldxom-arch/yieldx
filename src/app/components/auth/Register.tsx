@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { UserPlus, Mail, Lock, User, Users, GraduationCap, Eye, EyeOff, Building2 } from 'lucide-react';
-import { UserRole } from '@/app/contexts/YieldXContext';
+import { useYieldX, UserRole } from '@/app/contexts/YieldXContext';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Card } from '@/app/components/ui/card';
@@ -78,43 +78,20 @@ export function Register({ onSuccess, onBackToLogin }: RegisterProps) {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { register } = useYieldX();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    // Check if user already exists
-    const existingUsers = JSON.parse(localStorage.getItem('yieldx_users') || '[]');
-    const userExists = existingUsers.some((u: any) => u.email === formData.email);
-
-    if (userExists) {
-      toast.error('هذا البريد الإلكتروني مسجل مسبقاً');
+    const success = await register(formData.email, formData.password, formData.name, formData.role);
+    if (!success) {
+      toast.error('فشل إنشاء الحساب. يرجى التحقق من البريد الإلكتروني وكلمة المرور والمحاولة مرة أخرى.');
       return;
     }
 
-    // Save user account
-    const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      role: formData.role,
-      securityQuestion: formData.securityQuestion,
-      securityAnswer: formData.securityAnswer.toLowerCase().trim(),
-      createdAt: new Date().toISOString(),
-      ...(formData.role === 'organization' && {
-        organizationName: formData.organizationName,
-        organizationType: formData.organizationType,
-        subscriptionTier: 'free',
-        linkedTeacherIds: [],
-      }),
-    };
-
-    existingUsers.push(newUser);
-    localStorage.setItem('yieldx_users', JSON.stringify(existingUsers));
-
     toast.success('تم إنشاء الحساب بنجاح! 🎉');
-    
     setTimeout(() => {
       onSuccess(formData.email, formData.password, formData.role);
     }, 1000);

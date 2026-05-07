@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Brain, 
@@ -12,13 +12,12 @@ import {
   MessageSquare,
   X
 } from 'lucide-react';
+import { useYieldX } from '@/app/contexts/YieldXContext';
+import { generateCFOInsights, generateCMOInsights, generateCEOInsights } from '@/lib/copilot-ai';
 import type { 
   AICopilotRole, 
   AICopilotPersonality, 
-  AICopilotMessage,
-  CFOAnalysis,
-  CMOAnalysis,
-  CEOAnalysis
+  AICopilotMessage
 } from '@/app/types/ai-copilot';
 
 interface CopilotBridgeProps {
@@ -85,65 +84,185 @@ const copilotPersonalities: Record<AICopilotRole, AICopilotPersonality> = {
   },
 };
 
+const createFallbackMessages = (language: 'en' | 'ar'): AICopilotMessage[] => [
+  {
+    id: 'cfo-empty',
+    copilotRole: 'CFO',
+    type: 'question',
+    priority: 'low',
+    title: language === 'ar' ? 'أكمل المستوى 0 أولاً' : 'Complete Level 0 first',
+    titleAr: 'أكمل المستوى 0 أولاً',
+    content: language === 'ar'
+      ? 'يرجى إنهاء اختيار نوع المشروع في المستوى 0 حتى أتمكن من تحليل احتياجاتك المالية والترخيص.'
+      : 'Please finish the project type selection in Level 0 so I can analyze your financials and licensing needs.',
+    contentAr: language === 'ar'
+      ? 'يرجى إنهاء اختيار نوع المشروع في المستوى 0 حتى أتمكن من تحليل احتياجاتك المالية والترخيص.'
+      : 'Please finish the project type selection in Level 0 so I can analyze your financials and licensing needs.',
+    timestamp: Date.now(),
+    read: false,
+    actionable: false,
+  },
+  {
+    id: 'cmo-empty',
+    copilotRole: 'CMO',
+    type: 'question',
+    priority: 'low',
+    title: language === 'ar' ? 'اختر نوع المشروع أولاً' : 'Choose your project type first',
+    titleAr: 'اختر نوع المشروع أولاً',
+    content: language === 'ar'
+      ? 'أكمل المستوى 0 حتى أتمكن من تقديم اقتراحات التسويق واستراتيجية السوق الخاصة بك.'
+      : 'Complete Level 0 so I can provide market positioning, competitor insight, and customer strategy.',
+    contentAr: language === 'ar'
+      ? 'أكمل المستوى 0 حتى أتمكن من تقديم اقتراحات التسويق واستراتيجية السوق الخاصة بك.'
+      : 'Complete Level 0 so I can provide market positioning, competitor insight, and customer strategy.',
+    timestamp: Date.now(),
+    read: false,
+    actionable: false,
+  },
+  {
+    id: 'ceo-empty',
+    copilotRole: 'CEO',
+    type: 'question',
+    priority: 'low',
+    title: language === 'ar' ? 'ابدأ بالمستوى 0' : 'Start with Level 0',
+    titleAr: 'ابدأ بالمستوى 0',
+    content: language === 'ar'
+      ? 'أكمل الإعداد الأولي للمشروع في المستوى 0 قبل أن أتمكن من تقديم نظرة استراتيجية.'
+      : 'Finish the initial project setup in Level 0 before I can give you a strategic overview.',
+    contentAr: language === 'ar'
+      ? 'أكمل الإعداد الأولي للمشروع في المستوى 0 قبل أن أتمكن من تقديم نظرة استراتيجية.'
+      : 'Finish the initial project setup in Level 0 before I can give you a strategic overview.',
+    timestamp: Date.now(),
+    read: false,
+    actionable: false,
+  },
+];
+
+const getCopilotRateLimitError = (language: 'en' | 'ar') =>
+  language === 'ar'
+    ? 'لقد تجاوزنا حد التحديث. حاول مرة أخرى بعد 10 ثوانٍ.'
+    : 'You have reached the refresh limit. Please try again in 10 seconds.';
+
 export function CopilotBridge({ language, onMessageRead, onActionTaken }: CopilotBridgeProps) {
-  const [selectedCopilot, setSelectedCopilot] = useState<AICopilotRole | null>(null);
+  const { moduleData, projectTypeData, studyModeData, enhancedSWOT, financialKPIs, bmcData, oman2040 } = useYieldX();
+  const [selectedCopilot, setSelectedCopilot] = useState<AICopilotRole | null>('CFO');
   const [messages, setMessages] = useState<AICopilotMessage[]>([]);
   const [showBridge, setShowBridge] = useState(false);
+  const [loadingRoles, setLoadingRoles] = useState<Record<AICopilotRole, boolean>>({ CFO: false, CMO: false, CEO: false });
+  const [errorRoles, setErrorRoles] = useState<Record<AICopilotRole, string | null>>({ CFO: null, CMO: null, CEO: null });
+  const [cachedProjectKey, setCachedProjectKey] = useState<string>('');
+  const lastGeneratedAt = useRef<number>(0);
 
-  // Mock messages for demonstration
+  const projectData = useMemo(
+    () => ({ projectTypeData, studyModeData, enhancedSWOT, financialKPIs, bmcData, oman2040, moduleData }),
+    [projectTypeData, studyModeData, enhancedSWOT, financialKPIs, bmcData, oman2040, moduleData]
+  );
+
+  const currentProjectKey = useMemo(() => {
+    try {
+      return JSON.stringify(projectData);
+    } catch {
+      return String(projectData);
+    }
+  }, [projectData]);
+
+  const hasProjectData = Boolean(projectTypeData || Object.keys(moduleData).length > 0);
+
+  const setRoleLoading = (role: AICopilotRole, value: boolean) => {
+    setLoadingRoles((prev) => ({ ...prev, [role]: value }));
+  };
+
+  const setRoleError = (role: AICopilotRole, message: string | null) => {
+    setErrorRoles((prev) => ({ ...prev, [role]: message }));
+  };
+
+  const mergeRoleMessages = (role: AICopilotRole, roleMessages: AICopilotMessage[]) => {
+    setMessages((prev) => [
+      ...prev.filter((message) => message.copilotRole !== role),
+      ...roleMessages,
+    ]);
+  };
+
+  const getFallbackForRole = (role: AICopilotRole) => createFallbackMessages(language).filter((message) => message.copilotRole === role);
+
+  const fetchRoleInsights = async (role: AICopilotRole) => {
+    if (Date.now() - lastGeneratedAt.current < 10000) {
+      throw new Error('rate_limit');
+    }
+
+    setRoleLoading(role, true);
+    setRoleError(role, null);
+
+    try {
+      const roleMessages = hasProjectData
+        ? await (role === 'CFO'
+          ? generateCFOInsights(projectData, language)
+          : role === 'CMO'
+            ? generateCMOInsights(projectData, language)
+            : generateCEOInsights(projectData, language))
+        : getFallbackForRole(role);
+
+      mergeRoleMessages(role, roleMessages);
+      setCachedProjectKey(currentProjectKey);
+      lastGeneratedAt.current = Date.now();
+    } catch (error) {
+      const isRateLimited = error instanceof Error && error.message === 'rate_limit';
+      const errorMessage = isRateLimited
+        ? getCopilotRateLimitError(language)
+        : language === 'ar'
+          ? 'تعذر الحصول على رؤى الذكاء الاصطناعي الآن. حاول مرة أخرى لاحقاً.'
+          : 'Unable to fetch AI insights right now. Please try again later.';
+      setRoleError(role, errorMessage);
+      console.error('CopilotBridge error:', error);
+    } finally {
+      setRoleLoading(role, false);
+    }
+  };
+
+  const fetchAllInsights = async () => {
+    if (!hasProjectData && cachedProjectKey === currentProjectKey && messages.length > 0) {
+      return;
+    }
+
+    if (Date.now() - lastGeneratedAt.current < 10000 && cachedProjectKey === currentProjectKey) {
+      return;
+    }
+
+    await Promise.allSettled((['CFO', 'CMO', 'CEO'] as AICopilotRole[]).map((role) => fetchRoleInsights(role)));
+  };
+
   useEffect(() => {
-    const mockMessages: AICopilotMessage[] = [
-      {
-        id: '1',
-        copilotRole: 'CFO',
-        type: 'warning',
-        priority: 'high',
-        title: 'Cash Flow Warning',
-        titleAr: 'تحذير التدفق النقدي',
-        content: 'Your burn rate is 15% higher than projected. Consider reducing operational expenses.',
-        contentAr: 'معدل الحرق الخاص بك أعلى بنسبة 15٪ من المتوقع. فكر في تقليل النفقات التشغيلية.',
-        timestamp: Date.now() - 3600000,
-        read: false,
-        actionable: true,
-        actions: [
-          {
-            id: 'view-details',
-            label: 'View Analysis',
-            labelAr: 'عرض التحليل',
-            type: 'view-details',
-            callback: () => console.log('View details'),
-          },
-        ],
-      },
-      {
-        id: '2',
-        copilotRole: 'CMO',
-        type: 'suggestion',
-        priority: 'medium',
-        title: 'Market Opportunity',
-        titleAr: 'فرصة سوقية',
-        content: 'Detected a 23% increase in demand for your product category. Consider launching a targeted campaign.',
-        contentAr: 'اكتشفنا زيادة بنسبة 23٪ في الطلب على فئة منتجك. فكر في إطلاق حملة مستهدفة.',
-        timestamp: Date.now() - 7200000,
-        read: false,
-        actionable: true,
-      },
-      {
-        id: '3',
-        copilotRole: 'CEO',
-        type: 'insight',
-        priority: 'critical',
-        title: 'Strategic Decision Required',
-        titleAr: 'قرار استراتيجي مطلوب',
-        content: 'Your growth trajectory requires a decision: Scale operations or focus on profitability?',
-        contentAr: 'مسار نموك يتطلب قراراً: توسيع العمليات أو التركيز على الربحية؟',
-        timestamp: Date.now() - 1800000,
-        read: false,
-        actionable: true,
-      },
-    ];
-    setMessages(mockMessages);
-  }, []);
+    const handleInsightsGenerated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role: AICopilotRole; messages: AICopilotMessage[] }>; 
+      if (!customEvent?.detail?.role || !customEvent?.detail?.messages) return;
+      mergeRoleMessages(customEvent.detail.role, customEvent.detail.messages);
+      setRoleError(customEvent.detail.role, null);
+      setCachedProjectKey(currentProjectKey);
+      lastGeneratedAt.current = Date.now();
+    };
+
+    const handleInsightsError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ role: AICopilotRole; error: string }>; 
+      if (!customEvent?.detail?.role) return;
+      setRoleError(customEvent.detail.role, customEvent.detail.error || (language === 'ar' ? 'حدث خطأ في الذكاء الاصطناعي' : 'AI copilot error occurred'));
+    };
+
+    window.addEventListener('yieldx:copilot-insights-generated', handleInsightsGenerated as EventListener);
+    window.addEventListener('yieldx:copilot-insights-error', handleInsightsError as EventListener);
+
+    return () => {
+      window.removeEventListener('yieldx:copilot-insights-generated', handleInsightsGenerated as EventListener);
+      window.removeEventListener('yieldx:copilot-insights-error', handleInsightsError as EventListener);
+    };
+  }, [currentProjectKey, language]);
+
+  useEffect(() => {
+    if (!showBridge) return;
+    if (!selectedCopilot) setSelectedCopilot('CFO');
+    if (currentProjectKey !== cachedProjectKey || messages.length === 0) {
+      void fetchAllInsights();
+    }
+  }, [showBridge, currentProjectKey]);
 
   const getCopilotIcon = (role: AICopilotRole) => {
     switch (role) {
@@ -353,6 +472,19 @@ export function CopilotBridge({ language, onMessageRead, onActionTaken }: Copilo
 
                       {/* Messages List */}
                       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        {errorRoles[selectedCopilot] && (
+                          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-100 text-sm">
+                            {errorRoles[selectedCopilot]}
+                          </div>
+                        )}
+                        {loadingRoles[selectedCopilot] && (
+                          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-blue-100 text-sm">
+                            {language === 'ar'
+                              ? copilotPersonalities[selectedCopilot].catchphrases.thinking.ar
+                              : copilotPersonalities[selectedCopilot].catchphrases.thinking.en
+                            }
+                          </div>
+                        )}
                         {messages
                           .filter(m => m.copilotRole === selectedCopilot)
                           .map((message) => (

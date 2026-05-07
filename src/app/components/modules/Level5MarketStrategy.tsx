@@ -3,6 +3,7 @@ import { CompetitorAnalysisMap } from './CompetitorAnalysisMap';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Target, TrendingUp, Lightbulb, ArrowLeft, Save, AlertCircle, CheckCircle2, Sparkles, Info } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
+import { generateCMOInsights } from '@/lib/copilot-ai';
 import type { SWOTPoint } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -24,7 +25,7 @@ interface Product {
 }
 
 export function Level5MarketStrategy() {
-  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateEnhancedSWOT, enhancedSWOT, projectTypeData, theme } = useYieldX();
+  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateEnhancedSWOT, enhancedSWOT, projectTypeData, studyModeData, financialKPIs, bmcData, oman2040, theme } = useYieldX();
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
@@ -341,6 +342,39 @@ export function Level5MarketStrategy() {
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(5, currentLevel.maxXp, true);
         }
+
+        void (async () => {
+          try {
+            const insights = await generateCMOInsights(
+              {
+                projectTypeData,
+                studyModeData,
+                moduleData,
+                enhancedSWOT,
+                financialKPIs,
+                bmcData,
+                oman2040,
+              },
+              language
+            );
+            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-generated', {
+              detail: {
+                role: 'CMO',
+                messages: insights,
+              },
+            }));
+          } catch (error) {
+            console.error('Nova background generation failed', error);
+            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-error', {
+              detail: {
+                role: 'CMO',
+                error: language === 'ar'
+                  ? 'فشل إنشاء رؤى السوق في الخلفية. حاول مرة أخرى.'
+                  : 'Market insights generation failed in the background. Please try again.',
+              },
+            }));
+          }
+        })();
         
         setTimeout(() => {
           setSaveStatus('idle');
