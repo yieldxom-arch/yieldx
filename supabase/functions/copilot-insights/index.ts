@@ -161,6 +161,15 @@ interface ErrorResponseBody {
 const app = new Hono();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// Keep Hono's CORS middleware, but also add an explicit OPTIONS handler.
+// This guarantees the preflight returns HTTP 200 with the required headers.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 app.use(
   "/*",
   cors({
@@ -172,12 +181,22 @@ app.use(
   })
 );
 
+app.options("/*", (c: any) => {
+  return new Response("ok", {
+    status: 200,
+    headers: corsHeaders,
+  });
+});
+
+
 app.use("*", logger(console.log));
 
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get("/health", (c) => {
+app.get("/health", (c: any) => {
   return c.json({ status: "ok" });
 });
+
 
 // ─── Helper: Build Gemini prompt ──────────────────────────────────────────────
 function buildPrompt(
