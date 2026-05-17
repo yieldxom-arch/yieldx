@@ -1751,17 +1751,36 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
   };
 
   const updateLevelProgress = (levelId: number, xp: number, completed?: boolean) => {
+    // Read world-events XP multiplier written by WorldEventsContext (no import needed)
+    let boostedXP = xp;
+    try {
+      const raw = localStorage.getItem('yieldx_events_impact');
+      if (raw) {
+        const impact = JSON.parse(raw) as { rewardMultiplier: number; xpModifier: number };
+        boostedXP = Math.round(xp * impact.rewardMultiplier + impact.xpModifier);
+      }
+    } catch {}
+
     setLevels((prev) =>
       prev.map((level, index) => {
         if (level.levelId === levelId) {
-          const newXP = Math.min(level.maxXp, xp);
+          const newXP = Math.min(level.maxXp, boostedXP);
           const isCompleted = completed !== undefined ? completed : newXP >= level.maxXp;
-          
+
           // Unlock next level if this one is completed
           if (isCompleted && index < prev.length - 1) {
             prev[index + 1].unlocked = true;
           }
-          
+
+          // Notify WorldEventsContext so it can record participation + update badges
+          if (isCompleted) {
+            try {
+              window.dispatchEvent(new CustomEvent('yieldx:level-complete', {
+                detail: { userId: user?.id ?? '', levelId },
+              }));
+            } catch {}
+          }
+
           return { ...level, xp: newXP, completed: isCompleted };
         }
         return level;

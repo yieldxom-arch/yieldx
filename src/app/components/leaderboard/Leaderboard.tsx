@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
+import { useWorldEvents } from '@/app/contexts/WorldEventsContext';
 
 type LeaderboardScope = 'global' | 'country' | 'university' | 'class';
 
@@ -38,6 +39,7 @@ interface LeaderboardUser {
 
 export function Leaderboard() {
   const { user, setCurrentView, language, totalXP, levels } = useYieldX();
+  const { activeEvents, aggregateImpact } = useWorldEvents();
   const [scope, setScope] = useState<LeaderboardScope>('global');
   const [isLoading, setIsLoading] = useState(true);
   const t = translations[language];
@@ -233,6 +235,62 @@ export function Leaderboard() {
         <ArrowLeft className={`w-5 h-5 group-hover:${language === 'ar' ? 'translate-x-1' : '-translate-x-1'} transition-transform ${language === 'ar' ? '' : 'rotate-180'}`} />
         <span className="font-semibold">{t.leaderboard.backToDashboard}</span>
       </motion.button>
+
+      {/* World Events impact banner — shown only when events are active */}
+      {activeEvents.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center gap-3 flex-wrap px-4 py-3 rounded-xl border"
+          style={{
+            background: 'rgba(78,205,196,0.08)',
+            borderColor: 'rgba(78,205,196,0.25)',
+          }}
+        >
+          <motion.span
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+            className="text-lg"
+          >
+            🌐
+          </motion.span>
+          <span className="text-sm font-semibold dark:text-[#4ECDC4] text-teal-700">
+            {language === 'ar'
+              ? `${activeEvents.length} أحداث عالمية تؤثر على الترتيب الآن`
+              : `${activeEvents.length} world event(s) affecting rankings now`}
+          </span>
+          {aggregateImpact.rankingMomentum !== 1 && (
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-full"
+              style={{
+                background: aggregateImpact.rankingMomentum > 1 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                color: aggregateImpact.rankingMomentum > 1 ? '#6EE7B7' : '#FCA5A5',
+              }}
+            >
+              {language === 'ar' ? 'زخم الترتيب' : 'Ranking momentum'}{' '}
+              {aggregateImpact.rankingMomentum > 1 ? '+' : ''}
+              {Math.round((aggregateImpact.rankingMomentum - 1) * 100)}%
+            </span>
+          )}
+          {aggregateImpact.xpModifier !== 0 && (
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-full"
+              style={{
+                background: aggregateImpact.xpModifier > 0 ? 'rgba(78,205,196,0.15)' : 'rgba(239,68,68,0.15)',
+                color: aggregateImpact.xpModifier > 0 ? '#4ECDC4' : '#FCA5A5',
+              }}
+            >
+              XP {aggregateImpact.xpModifier > 0 ? '+' : ''}{aggregateImpact.xpModifier}
+            </span>
+          )}
+          <button
+            onClick={() => setCurrentView('world-events')}
+            className="ms-auto text-xs underline dark:text-[#7FDBCA] text-teal-600 hover:opacity-80"
+          >
+            {language === 'ar' ? 'عرض الأحداث ←' : '← View Events'}
+          </button>
+        </motion.div>
+      )}
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">

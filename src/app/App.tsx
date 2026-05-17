@@ -56,6 +56,10 @@ import { FeaturesShowcase } from '@/app/components/demo/FeaturesShowcase';
 import { ColonyPage } from '@/app/components/pages/ColonyPage';
 import { WarpDrivePage } from '@/app/components/pages/WarpDrivePage';
 import { MigrationButton } from '@/app/components/admin/MigrationButton';
+// Live World Events
+import { WorldEventsProvider } from '@/app/contexts/WorldEventsContext';
+import { WorldEventsPage } from '@/app/components/world-events/WorldEventsPage';
+import { WorldEventsAdmin } from '@/app/components/admin/WorldEventsAdmin';
 import { BusinessResources } from '@/app/components/BusinessResources';
 import { Certificate } from '@/app/components/Certificate';
 import { SimpleCertificate } from '@/app/components/SimpleCertificate';
@@ -156,6 +160,11 @@ function AppContent() {
         return <ColonyPage />;
       case 'warp-drive':
         return <WarpDrivePage />;
+      // Live World Events
+      case 'world-events':
+        return <WorldEventsPage />;
+      case 'admin-world-events':
+        return <WorldEventsAdmin />;
       // TEST: Supabase Connection
       case 'test-supabase':
         return <SupabaseTest />;
@@ -279,14 +288,16 @@ export default function App() {
 
   return (
     <YieldXProvider>
-      <div className="min-h-screen">
-        <ConnectivityBanner />
-        <AppContent />
-        <Toaster />
-        <ChatBot />
-        {/* Temporary migration button - remove after migration is complete */}
-        <MigrationButton />
-      </div>
+      <WorldEventsProvider>
+        <div className="min-h-screen">
+          <ConnectivityBanner />
+          <AppContent />
+          <Toaster />
+          <ChatBot />
+          {/* Temporary migration button - remove after migration is complete */}
+          <MigrationButton />
+        </div>
+      </WorldEventsProvider>
     </YieldXProvider>
   );
 }

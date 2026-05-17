@@ -4,6 +4,7 @@ import { Trophy, Star, LogOut, QrCode, FileBarChart, Briefcase, Users as UsersIc
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
 import { EnhancedSpaceMap } from '@/app/components/space-map/EnhancedSpaceMap';
+import { WorldEventsDashboardWidget } from '@/app/components/world-events/WorldEventsDashboardWidget';
 import { SettingsModal } from '@/app/components/settings/SettingsModal';
 import { CompletionReport } from '@/app/components/reports/CompletionReport';
 import { WelcomeTutorial } from '@/app/components/onboarding/WelcomeTutorial';
@@ -646,6 +647,16 @@ export function ProfessionalDashboard() {
           className="mb-8"
         >
           <StreaksWidget />
+        </motion.div>
+
+        {/* Live World Events Widget */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="mb-8"
+        >
+          <WorldEventsDashboardWidget />
         </motion.div>
 
         {/* NEW: Video Library & Subscription Cards */}
