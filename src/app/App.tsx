@@ -21,6 +21,7 @@ import { WorkspaceManager } from '@/app/components/workspace/WorkspaceManager';
 import { StudentWorkspaceView } from '@/app/components/workspace/StudentWorkspaceView';
 import { TeacherDashboard } from '@/app/components/teacher/TeacherDashboard';
 import { ChatBot } from '@/app/components/chatbot/ChatBot';
+import { SUBSCRIPTION_PLANS } from '@/app/data/subscriptionData';
 import { ShortsLibrary } from '@/app/components/video-library/ShortsLibrary';
 import { Leaderboard } from '@/app/components/leaderboard/Leaderboard';
 import { MessagingCenter } from '@/app/components/messaging/MessagingCenter';
@@ -111,6 +112,8 @@ function ConnectivityBanner() {
 
 function AppContent() {
   const { currentView, user, language } = useYieldX();
+  const currentSubscription = SUBSCRIPTION_PLANS.find(plan => plan.id === user?.subscriptionTier);
+  const showChatBot = !!currentSubscription?.hasAIAssistant;
 
   // Show migration helper in console
   React.useEffect(() => {
@@ -266,6 +269,7 @@ function AppContent() {
           onActionTaken={(msgId, actionId) => console.log('Action taken:', msgId, actionId)}
         />
       )}
+      {showChatBot && <ChatBot />}
     </div>
   );
 }
@@ -293,7 +297,6 @@ export default function App() {
           <ConnectivityBanner />
           <AppContent />
           <Toaster />
-          <ChatBot />
           {/* Temporary migration button - remove after migration is complete */}
           <MigrationButton />
         </div>

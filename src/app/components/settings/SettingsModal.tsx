@@ -283,7 +283,7 @@ export function SettingsModal() {
 
   const handleExportData = () => {
     const data = {
-      user: localStorage.getItem('yieldx_user'),
+      user,
       levels: localStorage.getItem('yieldx_levels'),
       moduleData: localStorage.getItem('yieldx_module_data'),
       exportDate: new Date().toISOString(),

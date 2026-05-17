@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { DollarSign, TrendingUp, Calculator, BarChart3, ArrowLeft, Save, AlertCircle, CheckCircle2, PieChart, Shield, Plus, Trash2 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
+import { generateCFOInsights } from '@/lib/copilot-ai';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 
@@ -13,7 +14,7 @@ interface Insurance {
 }
 
 export function Level6FinancingKPIs() {
-  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateFinancialKPIs, studyModeData, theme } = useYieldX();
+  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateFinancialKPIs, studyModeData, projectTypeData, enhancedSWOT, bmcData, oman2040, theme } = useYieldX();
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
@@ -300,7 +301,40 @@ export function Level6FinancingKPIs() {
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(6, currentLevel.maxXp, true);
         }
-        
+
+        void (async () => {
+          try {
+            const insights = await generateCFOInsights(
+              {
+                projectTypeData,
+                studyModeData,
+                moduleData,
+                enhancedSWOT,
+                financialKPIs,
+                bmcData,
+                oman2040,
+              },
+              language
+            );
+            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-generated', {
+              detail: {
+                role: 'CFO',
+                messages: insights,
+              },
+            }));
+          } catch (error) {
+            console.error('Atlas background generation failed', error);
+            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-error', {
+              detail: {
+                role: 'CFO',
+                error: language === 'ar'
+                  ? 'فشل إنشاء الرؤى المالية في الخلفية. حاول مرة أخرى.'
+                  : 'Financial insights generation failed in the background. Please try again.',
+              },
+            }));
+          }
+        })();
+
         setTimeout(() => {
           setSaveStatus('idle');
           setCurrentView('module-7');

@@ -3,8 +3,6 @@ import { toast } from 'sonner';
 export const exportData = () => {
   try {
     const data = {
-      users: localStorage.getItem('yieldx_users'),
-      currentUser: localStorage.getItem('yieldx_currentUser'),
       levels: localStorage.getItem('yieldx_levels'),
       students: localStorage.getItem('yieldx_students'),
       cohorts: localStorage.getItem('yieldx_cohorts'),
@@ -53,8 +51,6 @@ export const importData = (file: File): Promise<boolean> => {
         }
 
         // Restore data
-        if (data.users) localStorage.setItem('yieldx_users', data.users);
-        if (data.currentUser) localStorage.setItem('yieldx_currentUser', data.currentUser);
         if (data.levels) localStorage.setItem('yieldx_levels', data.levels);
         if (data.students) localStorage.setItem('yieldx_students', data.students);
         if (data.cohorts) localStorage.setItem('yieldx_cohorts', data.cohorts);
@@ -93,8 +89,6 @@ export const importData = (file: File): Promise<boolean> => {
 export const clearAllData = () => {
   try {
     const keys = [
-      'yieldx_users',
-      'yieldx_currentUser',
       'yieldx_levels',
       'yieldx_students',
       'yieldx_cohorts',

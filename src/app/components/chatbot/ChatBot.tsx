@@ -4,8 +4,7 @@ import { MessageCircle, X, Send, Sparkles, HelpCircle } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { sendChatMessage } from '@/app/services/chatbotService';
 
 interface Message {
   id: string;
@@ -115,7 +114,7 @@ const faqs: FAQ[] = [
 ];
 
 export function ChatBot() {
-  const { user, levels, totalXP, currentView } = useYieldX();
+  const { user, levels, totalXP, currentView, language } = useYieldX();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -321,126 +320,39 @@ export function ChatBot() {
     setIsTyping(true);
 
     try {
-      // Get API key from localStorage
-      const apiKey = localStorage.getItem('yieldx_openai_api_key')?.trim() || '';
-      
-      // Only try AI if we have a valid API key
-      const shouldTryAI = apiKey && (apiKey.startsWith('sk-') || apiKey.startsWith('sk_'));
-      
-      if (shouldTryAI) {
-        // Build user context for AI
-        const completedCount = levels.filter(l => l.completed).length;
-        const maxTotalXP = levels.reduce((sum, level) => sum + level.maxXp, 0);
-        const nextLevel = levels.find(l => l.unlocked && !l.completed);
-        const lateSubmissions = levels.filter(l => l.submissionStatus === 'late');
-        const gradedLevels = levels.filter(l => l.submissionStatus === 'graded' && l.grade);
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      }));
 
-        const userContext = {
-          name: user?.name || 'Student',
-          role: user?.role || 'student',
-          totalXP,
-          maxTotalXP,
-          completedLevels: completedCount,
-          totalLevels: levels.length,
-          progress: Math.round((totalXP / maxTotalXP) * 100),
-          nextLevel: nextLevel ? {
-            title: nextLevel.title,
-            xp: nextLevel.maxXp,
-            deadline: nextLevel.deadline
-          } : null,
-          lateSubmissions: lateSubmissions.length,
-          gradedLevels: gradedLevels.length,
-          avgGrade: gradedLevels.length > 0 
-            ? Math.round(gradedLevels.reduce((sum, l) => sum + (l.grade || 0), 0) / gradedLevels.length)
-            : null
-        };
+      const response = await sendChatMessage({
+        userMessage: currentInput,
+        history: conversationHistory,
+        language,
+        userName: user?.name ?? undefined,
+        userRole: user?.role === 'lecturer' ? 'teacher' : user?.role === 'organization' || user?.role === 'admin' ? 'organization' : 'student'
+      });
 
-        // Build conversation history for context (last 10 messages)
-        const conversationHistory = messages.slice(-10).map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text
-        }));
-
-        // Add current user message
-        conversationHistory.push({
-          role: 'user',
-          content: currentInput
-        });
-
-        console.log('🤖 Attempting AI response with valid API key');
-
-        try {
-          // Call AI endpoint
-          const response = await fetch(
-            `https://${projectId}.supabase.co/functions/v1/make-server-a05faef1/chat`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${publicAnonKey}`
-              },
-              body: JSON.stringify({
-                messages: conversationHistory,
-                userContext,
-                apiKey: apiKey
-              })
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('✅ AI Response received successfully');
-            
-            const botMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              text: data.message || 'عذراً، حدث خطأ في معالجة سؤالك. حاول مرة أخرى.',
-              sender: 'bot',
-              timestamp: new Date()
-            };
-
-            setMessages(prev => [...prev, botMessage]);
-            setIsTyping(false);
-            return;
-          } else {
-            // AI failed, fall through to keyword-based system
-            const errorData = await response.json().catch(() => ({}));
-            console.log('⚠️ AI unavailable, using fallback system:', errorData.error);
-          }
-        } catch (aiError) {
-          console.log('⚠️ AI request failed, using fallback system:', aiError);
-        }
-      }
-
-      // Use keyword-based fallback system
-      console.log('🔧 Using keyword-based response system');
-      
-      // Add a small delay to simulate thinking
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const fallbackAnswer = findAnswer(currentInput);
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: fallbackAnswer,
+        text: response.text,
         sender: 'bot',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-
     } catch (error) {
-      console.error('❌ Error in chat handler:', error);
-      
-      // Fallback to keyword matching if network error
-      const fallbackAnswer = findAnswer(currentInput);
-      const botMessage: Message = {
+      console.error('❌ ChatBot send message error:', error);
+      const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: fallbackAnswer,
+        text: language === 'ar'
+          ? 'حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.'
+          : 'An unexpected error occurred. Please try again later.',
         sender: 'bot',
         timestamp: new Date()
       };
-
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, fallbackMessage]);
+    } finally {
       setIsTyping(false);
     }
   };
@@ -640,7 +552,7 @@ export function ChatBot() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="اكتب سؤالك هنا..."
+                    placeholder={language === 'ar' ? 'اكتب سؤالك هنا...' : 'Type your question here...'}
                     className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]"
                   />
                   <Button
