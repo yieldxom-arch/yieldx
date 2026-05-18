@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pnpm exec *)",
-      "Bash(supabase *)"
+      "Bash(supabase *)",
+      "PowerShell(node_modules/.bin/tsc --noEmit --skipLibCheck 2>&1)"
     ]
   }
 }

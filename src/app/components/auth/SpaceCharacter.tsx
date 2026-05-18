@@ -307,25 +307,23 @@ export function SpaceCharacter({
                 <motion.circle
                   cx="75"
                   cy="95"
-                  r="12"
                   fill="url(#glowGradient)"
                   opacity="0.4"
-                  initial={{ opacity: 0.4 }}
+                  initial={{ r: 12, opacity: 0.4 }}
                   animate={{
                     r: isTyping ? [12, 14, 12] : 12,
                   }}
                   transition={{ duration: 1, repeat: Infinity }}
                   filter="url(#softGlow)"
                 />
-                
+
                 {/* Right Eye Glow */}
                 <motion.circle
                   cx="125"
                   cy="95"
-                  r="12"
                   fill="url(#glowGradient)"
                   opacity="0.4"
-                  initial={{ opacity: 0.4 }}
+                  initial={{ r: 12, opacity: 0.4 }}
                   animate={{
                     r: isTyping ? [12, 14, 12] : 12,
                   }}

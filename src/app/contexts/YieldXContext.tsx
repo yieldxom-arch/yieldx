@@ -1189,6 +1189,20 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       );
     }
 
+    // Expose migration helper so `runOrganizationRoleMigration()` actually works in the browser console.
+    (window as any).runOrganizationRoleMigration = async () => {
+      console.log('🔧 Running organization role migration...');
+      try {
+        const res = await fetch(`${SERVER_BASE}/run-migration`, { method: 'POST', headers: AUTH_HEADERS });
+        const result = await res.json();
+        if (result.success) console.log('✅ Migration complete:', result.message);
+        else console.error('❌ Migration failed:', result.error);
+        return result;
+      } catch (e: any) {
+        console.error('❌ Migration request failed:', e.message);
+      }
+    };
+
     const initializeAuth = async () => {
       try {
         const { data: sessionData, error: sessionError } = await sbClient.auth.getSession();
@@ -1401,10 +1415,10 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       }
 
       const supabaseId = data.user.id;
-      const profile = await fetchSupabaseUserProfile(supabaseId);
       const userMeta = data.user.user_metadata || {};
 
-      const newUser: User = profile || {
+      // Build a minimal user from auth metadata immediately — no DB round-trip.
+      const immediateUser: User = {
         id: supabaseId,
         name: (userMeta.full_name as string) || email.split('@')[0],
         email,
@@ -1413,25 +1427,53 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
         maxProjects: 1,
       };
 
-      setUser(newUser);
+      // Navigate right away — do NOT block on profile / project fetches.
+      setUser(immediateUser);
       setCurrentView('dashboard');
 
-      const [serverProjects, localStr] = await Promise.all([
-        fetchProjectsFromServer(supabaseId),
-        Promise.resolve(localStorage.getItem(`yieldx_saved_projects_${supabaseId}`)),
-      ]);
+      // Load local projects synchronously (no network wait).
+      const localStr = localStorage.getItem(`yieldx_saved_projects_${supabaseId}`);
       const localProjects: any[] = localStr ? JSON.parse(localStr) : [];
-      const merged = [...serverProjects];
-      localProjects.forEach((lp) => {
-        if (!merged.find((sp: any) => sp.id === lp.id)) merged.push(lp);
-      });
-      if (merged.length > 0) setSavedProjects(merged);
+      if (localProjects.length > 0) setSavedProjects(localProjects);
 
       const savedActiveId = localStorage.getItem(`yieldx_active_project_${supabaseId}`);
       if (savedActiveId) setActiveSavedProjectId(savedActiveId);
 
       flushPendingSync();
-      console.log('✅ USER LOGGED IN (ONLINE/Supabase):', newUser);
+      console.log('✅ USER LOGGED IN (ONLINE/Supabase):', immediateUser);
+
+      // Enrich profile and sync server projects in the background.
+      (async () => {
+        try {
+          const profile = await fetchSupabaseUserProfile(supabaseId);
+          if (profile) {
+            setUser(profile);
+          } else {
+            // Profile row is missing — create it so future fetches succeed.
+            const { error: insertError } = await sbClient.from('users').insert({
+              id: supabaseId,
+              email,
+              name: immediateUser.name,
+              role: immediateUser.role,
+            });
+            if (insertError && !insertError.message.includes('duplicate') && !insertError.message.includes('unique')) {
+              console.warn('⚠️ Could not create missing profile row:', insertError.message);
+            }
+          }
+
+          const serverProjects = await fetchProjectsFromServer(supabaseId);
+          if (serverProjects.length > 0) {
+            const merged = [...serverProjects];
+            localProjects.forEach((lp) => {
+              if (!merged.find((sp: any) => sp.id === lp.id)) merged.push(lp);
+            });
+            setSavedProjects(merged);
+          }
+        } catch (bgErr) {
+          console.warn('⚠️ Background profile/project sync failed:', bgErr);
+        }
+      })();
+
       return true;
     } catch (e) {
       console.error('❌ ERROR: Supabase login exception:', e);

@@ -80,9 +80,22 @@ export function AnimatedLoginForm() {
     }
     
     // ── LOGIN ─────────────────────────────────────────────────────────────────
-    const loginSuccess = await login(email, password, selectedRole);
-    
-    if (!loginSuccess) {
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      let timeoutId: any;
+      const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`Login timed out after ${ms}ms`)), ms);
+      });
+      try {
+        return await Promise.race([promise, timeoutPromise]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
+    };
+
+    try {
+      const loginSuccess = await withTimeout(login(email, password, selectedRole), 15000);
+
+      if (!loginSuccess) {
       setError(language === 'ar' 
         ? '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة.\nالرجاء التحقق من بياناتك أو إنشاء حساب جديد.' 
         : '❌ Incorrect email or password.\nPlease check your credentials or create a new account.');
@@ -92,13 +105,21 @@ export function AnimatedLoginForm() {
     }
 
     // Show success message briefly then redirect
-    console.log('✅ Login successful (Offline Mode)!');
+    console.log('✅ Login successful (Online)!');
     setSuccess(true);
     setIsLoading(false);
     
     // The login function already sets currentView to 'dashboard'
     // Just wait a moment for the success animation
     await new Promise(resolve => setTimeout(resolve, 800));
+    } catch (err: any) {
+      console.error('❌ Login error/timeout:', err);
+      setError(language === 'ar'
+        ? '❌ تعذر تسجيل الدخول.\nيرجى المحاولة مرة أخرى.'
+        : '❌ Login failed or timed out.\nPlease try again.');
+      setSuccess(false);
+      setIsLoading(false);
+    }
   };
 
 
