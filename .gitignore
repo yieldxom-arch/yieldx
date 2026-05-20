@@ -31,3 +31,11 @@ Thumbs.db
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Claude Code session files
+.claude/
+sessions/
+
+# Local env files (never commit secrets)
+.env
+.env.local

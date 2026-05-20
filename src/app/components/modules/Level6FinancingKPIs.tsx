@@ -5,6 +5,8 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import { generateCFOInsights } from '@/lib/copilot-ai';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface Insurance {
   id: string;
@@ -46,6 +48,8 @@ export function Level6FinancingKPIs() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level6']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   const currentLevel = levels.find(l => l.levelId === 6);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
@@ -335,10 +339,14 @@ export function Level6FinancingKPIs() {
           }
         })();
 
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-7');
-        }, 1500);
+        // YieldX AI level feedback (includes 3-year financial projection for Level 6)
+        getLevelAiFeedback(6, moduleData['level6'] || {}, language as 'ar' | 'en')
+          .then(fb => { setAiFeedback(fb); updateModuleData('level6', { aiFeedback: fb }); })
+          .catch(() => {})
+          .finally(() => setIsLoadingAi(false));
+        setIsLoadingAi(true);
+
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };
@@ -1184,6 +1192,11 @@ export function Level6FinancingKPIs() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback with 3-Year Financial Projection */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

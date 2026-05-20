@@ -1,24 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { FileText, Download, Share2, CheckCircle, Award, TrendingUp } from 'lucide-react';
+import { FileText, Download, Share2, CheckCircle, Award, TrendingUp, Sparkles, Loader2 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Separator } from '@/app/components/ui/separator';
+import { generateFeasibilityReport } from '@/lib/ai';
+import jsPDF from 'jspdf';
 
 export function CompletionReport() {
-  const { user, levels, moduleData, totalXP } = useYieldX();
+  const { user, levels, moduleData, totalXP, language } = useYieldX();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reportText, setReportText] = useState<string | null>(null);
 
   const completedLevels = levels.filter((l) => l.completed).length;
   const completionPercentage = (completedLevels / levels.length) * 100;
 
-  const generatePDFPreview = () => {
-    // This would generate actual PDF in production
-    alert('سيتم تحميل تقرير PDF الكامل قريباً!');
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const text = await generateFeasibilityReport(moduleData, language as 'ar' | 'en');
+      setReportText(text);
+    } catch (err) {
+      console.error('Report generation failed', err);
+      setReportText(language === 'ar'
+        ? 'فشل إنشاء التقرير. تأكد من إعداد مفتاح VITE_ANTHROPIC_API_KEY.'
+        : 'Report generation failed. Make sure VITE_ANTHROPIC_API_KEY is set.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (!reportText) return;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const maxWidth = pageWidth - margin * 2;
+    doc.setFontSize(16);
+    doc.text(language === 'ar' ? 'دراسة الجدوى — YieldX' : 'Feasibility Study — YieldX', margin, 20);
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(reportText, maxWidth);
+    let y = 30;
+    lines.forEach((line: string) => {
+      if (y > 280) { doc.addPage(); y = 15; }
+      doc.text(line, margin, y);
+      y += 6;
+    });
+    doc.save('YieldX_Feasibility_Study.pdf');
   };
 
   const shareReport = () => {
-    alert('سيتم إضافة خاصية المشاركة قريباً!');
+    if (navigator.share && reportText) {
+      navigator.share({ title: 'YieldX Feasibility Study', text: reportText.slice(0, 300) }).catch(() => {});
+    }
   };
 
   return (
@@ -118,14 +153,24 @@ export function CompletionReport() {
       </Card>
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         <Button
-          onClick={generatePDFPreview}
+          onClick={handleGenerateReport}
+          disabled={isGenerating}
+          className="flex-1 bg-gradient-to-r from-[#4ECDC4] to-teal-600 hover:opacity-90"
+          size="lg"
+        >
+          {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Sparkles className="w-5 h-5 mr-2" />}
+          {language === 'ar' ? 'إنشاء دراسة الجدوى بالذكاء الاصطناعي' : 'Generate AI Feasibility Study'}
+        </Button>
+        <Button
+          onClick={handleDownloadPDF}
+          disabled={!reportText}
           className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
           size="lg"
         >
           <Download className="w-5 h-5 mr-2" />
-          تحميل التقرير الكامل (PDF)
+          {language === 'ar' ? 'تحميل PDF' : 'Download PDF'}
         </Button>
         
         <Button
@@ -175,6 +220,16 @@ export function CompletionReport() {
               </p>
             </div>
           </div>
+        </Card>
+      )}
+      {/* AI-Generated Feasibility Study Report */}
+      {reportText && (
+        <Card className="bg-white/5 border-[#4ECDC4]/30 p-6">
+          <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#4ECDC4]" />
+            {language === 'ar' ? 'دراسة الجدوى المُولَّدة بالذكاء الاصطناعي' : 'AI-Generated Feasibility Study'}
+          </h3>
+          <pre className="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed font-sans">{reportText}</pre>
         </Card>
       )}
     </div>

@@ -4,6 +4,7 @@ import { DynamicShareholderModule } from './DynamicShareholderModule';
 import { Level0ProjectType } from './Level0ProjectType';
 import { Level1IdentityOwnership } from './Level1IdentityOwnership';
 import { Level2LegalFramework } from './Level2LegalFramework';
+import { Level3OperationalRequirements } from './Level3OperationalRequirements';
 import { Level3PhysicalResources } from './Level3PhysicalResources';
 import { Level4HumanResources } from './Level4HumanResources';
 import { Level5MarketStrategy } from './Level5MarketStrategy';
@@ -11,17 +12,21 @@ import { Level6FinancingKPIs } from './Level6FinancingKPIs';
 import { Level7BMCImplementation } from './Level7BMCImplementation';
 import { SmartLocationAnalysis } from './SmartLocationAnalysis';
 
-// NEW 7-LEVEL SYSTEM EXPORTS (0-7)
+// FEASIBILITY STUDY JOURNEY MODULES (0-7)
 export function ProjectTypeModule() {
   return <Level0ProjectType />;
 }
 
-export function IdentityOwnershipModule() {
-  return <Level1IdentityOwnership />;
+export function MarketStrategyModule() {
+  return <Level5MarketStrategy />;
 }
 
 export function LegalFrameworkModule() {
   return <Level2LegalFramework />;
+}
+
+export function OperationalRequirementsModule() {
+  return <Level3OperationalRequirements />;
 }
 
 export function PhysicalResourcesModule() {
@@ -32,12 +37,12 @@ export function HumanResourcesModule() {
   return <Level4HumanResources />;
 }
 
-export function MarketStrategyModule() {
-  return <Level5MarketStrategy />;
-}
-
 export function FinancingKPIsModule() {
   return <Level6FinancingKPIs />;
+}
+
+export function IdentityOwnershipModule() {
+  return <Level1IdentityOwnership />;
 }
 
 export function BMCImplementationModule() {

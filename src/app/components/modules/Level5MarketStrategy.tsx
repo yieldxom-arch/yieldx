@@ -8,6 +8,8 @@ import type { SWOTPoint } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { getSWOTSuggestions, getTypicalProfitMargin, getSectorName } from '@/app/config/sectorConfig';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface Competitor {
   id: string;
@@ -29,7 +31,7 @@ export function Level5MarketStrategy() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level5'];
+  const savedData = moduleData['level1'];
   
   // State
   const [competitors, setCompetitors] = useState<Competitor[]>(
@@ -74,8 +76,10 @@ export function Level5MarketStrategy() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level1']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 5);
+  const currentLevel = levels.find(l => l.levelId === 1);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Calculate total monthly revenue
@@ -104,7 +108,7 @@ export function Level5MarketStrategy() {
         threats: competitorThreats,
       },
     };
-    updateModuleData('level5', data);
+    updateModuleData('level1', data);
     
     // Update context SWOT
     updateEnhancedSWOT({
@@ -340,7 +344,7 @@ export function Level5MarketStrategy() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(5, currentLevel.maxXp, true);
+          updateLevelProgress(1, currentLevel.maxXp, true);
         }
 
         void (async () => {
@@ -376,10 +380,14 @@ export function Level5MarketStrategy() {
           }
         })();
         
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-6');
-        }, 1500);
+        // YieldX AI level feedback
+        getLevelAiFeedback(1, moduleData['level1'] || {}, language as 'ar' | 'en')
+          .then(fb => { setAiFeedback(fb); updateModuleData('level1', { aiFeedback: fb }); })
+          .catch(() => {})
+          .finally(() => setIsLoadingAi(false));
+        setIsLoadingAi(true);
+
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };
@@ -1334,6 +1342,11 @@ export function Level5MarketStrategy() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

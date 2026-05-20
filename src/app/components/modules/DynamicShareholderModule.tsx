@@ -27,7 +27,7 @@ export function DynamicShareholderModule() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const currentLevel = levels.find(l => l.levelId === 1);
+  const currentLevel = levels.find(l => l.levelId === 7);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Helper function to save current state

@@ -39,7 +39,6 @@ import {
   MarketModule,
   FinancialModule,
   SummaryModule,
-  // NEW 7-LEVEL SYSTEM (0-7)
   ProjectTypeModule,
   IdentityOwnershipModule,
   LegalFrameworkModule,
@@ -49,6 +48,7 @@ import {
   FinancingKPIsModule,
   BMCImplementationModule,
   SmartLocationModule,
+  OperationalRequirementsModule,
 } from '@/app/components/modules/AllModules';
 import BusinessPlanWizard from '@/app/components/business-plan/BusinessPlanWizard';
 // Revolutionary Features
@@ -178,36 +178,26 @@ function AppContent() {
       case 'test-landing':
         return <TestLanding />;
       // ==========================================
-      // NEW 7-LEVEL SYSTEM (0-7) - Primary Routing
-      // Following Omani Feasibility Study Standards
+      // FEASIBILITY STUDY JOURNEY (0-7) - Methodology Order
       // ==========================================
-      // Level 0: Project Type Selection (Agricultural/Industrial/Commercial/Service)
       case 'module-0':
         return <ProjectTypeModule />;
-      // Level 1: Identity & Ownership (Business details, shareholders)
       case 'module-1':
-        return <IdentityOwnershipModule />;
-      // Level 2: Legal Framework (Licenses, insurance, property)
+        return <MarketStrategyModule />;
       case 'module-2':
         return <LegalFrameworkModule />;
-      // Level 3: Physical Resources (Fixed assets, raw materials)
       case 'module-3':
-        return <PhysicalResourcesModule />;
-      // Level 4: Human Resources (Employees, Omanization, salaries)
+        return <OperationalRequirementsModule />;
       case 'module-4':
-        return <HumanResourcesModule />;
-      // Level 5: Market & Strategy (Competitors, products, SWOT)
+        return <PhysicalResourcesModule />;
       case 'module-5':
-        return <MarketStrategyModule />;
-      // Smart Location Intelligence (after Level 5)
+        return <HumanResourcesModule />;
       case 'smart-location':
         return <SmartLocationModule />;
-      // Level 6: Financing & Financial KPIs (Investment, loans, IRR, NPV, ROI, etc.)
       case 'module-6':
         return <FinancingKPIsModule />;
-      // Level 7: Business Model Canvas & Oman 2040 Contribution
       case 'module-7':
-        return <BMCImplementationModule />;
+        return <IdentityOwnershipModule />;
       case 'project-3d-view':
         return (
           <React.Suspense

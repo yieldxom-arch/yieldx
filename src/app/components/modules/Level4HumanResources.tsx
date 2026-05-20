@@ -5,6 +5,8 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { getOmanizationRequirement, validateOmanizationCompliance, getSectorName } from '@/app/config/sectorConfig';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface Employee {
   id: string;
@@ -19,7 +21,7 @@ export function Level4HumanResources() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level4'];
+  const savedData = moduleData['level5'];
   
   // Get sector-specific Omanization requirement
   const sectorOmanizationMin = getOmanizationRequirement(projectTypeData?.type || null);
@@ -38,8 +40,10 @@ export function Level4HumanResources() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level5']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 4);
+  const currentLevel = levels.find(l => l.levelId === 5);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Calculate HR metrics
@@ -83,7 +87,7 @@ export function Level4HumanResources() {
       trainingBudgetAnnual,
       totalAnnualHRCost,
     };
-    updateModuleData('level4', data);
+    updateModuleData('level5', data);
   };
 
   useEffect(() => {
@@ -164,7 +168,12 @@ export function Level4HumanResources() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(4, currentLevel.maxXp, true);
+          updateLevelProgress(5, currentLevel.maxXp, true);
+          getLevelAiFeedback(5, moduleData['level5'] || {}, language as 'ar' | 'en')
+            .then(fb => { setAiFeedback(fb); updateModuleData('level5', { aiFeedback: fb }); })
+            .catch(() => {})
+            .finally(() => setIsLoadingAi(false));
+          setIsLoadingAi(true);
         }
         
         setTimeout(() => {
@@ -632,6 +641,11 @@ export function Level4HumanResources() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

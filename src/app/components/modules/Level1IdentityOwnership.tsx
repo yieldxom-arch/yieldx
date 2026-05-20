@@ -6,6 +6,8 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { AINameChecker } from '@/app/components/naming/AINameChecker';
 import { getSectorConfig } from '@/app/config/sectorConfig';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface Owner {
   id: string;
@@ -21,7 +23,7 @@ export function Level1IdentityOwnership() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level1'];
+  const savedData = moduleData['level7'];
   
   // State
   const [businessName, setBusinessName] = useState(savedData?.businessName || '');
@@ -36,8 +38,10 @@ export function Level1IdentityOwnership() {
   );
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level7']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 1);
+  const currentLevel = levels.find(l => l.levelId === 7);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Calculate total share percentage
@@ -60,7 +64,7 @@ export function Level1IdentityOwnership() {
       location,
       owners,
     };
-    updateModuleData('level1', data);
+    updateModuleData('level7', data);
   };
 
   useEffect(() => {
@@ -142,7 +146,12 @@ export function Level1IdentityOwnership() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(1, currentLevel.maxXp, true);
+          updateLevelProgress(7, currentLevel.maxXp, true);
+          getLevelAiFeedback(7, moduleData['level7'] || {}, language as 'ar' | 'en')
+            .then(fb => { setAiFeedback(fb); updateModuleData('level7', { aiFeedback: fb }); })
+            .catch(() => {})
+            .finally(() => setIsLoadingAi(false));
+          setIsLoadingAi(true);
         }
         
         setTimeout(() => {
@@ -649,6 +658,11 @@ export function Level1IdentityOwnership() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

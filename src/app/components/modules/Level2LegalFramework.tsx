@@ -5,6 +5,8 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { getMandatoryLicenses, getSectorName } from '@/app/config/sectorConfig';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface License {
   id: string;
@@ -93,6 +95,8 @@ export function Level2LegalFramework() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level2']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   const currentLevel = levels.find(l => l.levelId === 2);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
@@ -197,15 +201,19 @@ export function Level2LegalFramework() {
         setTimeout(() => setSaveStatus('idle'), 4000);
       } else {
         setSaveStatus('saved');
-        
+
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(2, currentLevel.maxXp, true);
         }
-        
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-3');
-        }, 1500);
+
+        // AI feedback
+        setIsLoadingAi(true);
+        getLevelAiFeedback(2, moduleData['level2'] || {}, language as 'ar' | 'en')
+          .then(fb => { setAiFeedback(fb); updateModuleData('level2', { aiFeedback: fb }); })
+          .catch(() => {})
+          .finally(() => setIsLoadingAi(false));
+
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };
@@ -722,6 +730,11 @@ export function Level2LegalFramework() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

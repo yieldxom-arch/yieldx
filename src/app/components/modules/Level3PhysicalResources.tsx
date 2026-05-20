@@ -5,6 +5,8 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { shouldShowRawMaterials, getSectorName } from '@/app/config/sectorConfig';
+import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
+import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 
 interface FixedAsset {
   id: string;
@@ -29,7 +31,7 @@ export function Level3PhysicalResources() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level3'];
+  const savedData = moduleData['level4'];
   
   // State
   const [fixedAssets, setFixedAssets] = useState<FixedAsset[]>(
@@ -46,8 +48,10 @@ export function Level3PhysicalResources() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level4']?.aiFeedback || null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 3);
+  const currentLevel = levels.find(l => l.levelId === 4);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Depreciation rates based on asset type
@@ -91,7 +95,7 @@ export function Level3PhysicalResources() {
       totalMonthlyRawMaterialCost,
       totalAnnualDepreciation,
     };
-    updateModuleData('level3', data);
+    updateModuleData('level4', data);
   };
 
   useEffect(() => {
@@ -196,7 +200,12 @@ export function Level3PhysicalResources() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(3, currentLevel.maxXp, true);
+          updateLevelProgress(4, currentLevel.maxXp, true);
+          getLevelAiFeedback(4, moduleData['level4'] || {}, language as 'ar' | 'en')
+            .then(fb => { setAiFeedback(fb); updateModuleData('level4', { aiFeedback: fb }); })
+            .catch(() => {})
+            .finally(() => setIsLoadingAi(false));
+          setIsLoadingAi(true);
         }
         
         setTimeout(() => {
@@ -768,6 +777,11 @@ export function Level3PhysicalResources() {
             )}
           </Button>
         </motion.div>
+
+        {/* AI Feedback */}
+        <div className="mt-8">
+          <AiFeedbackCard feedback={aiFeedback} isLoading={isLoadingAi} language={language as 'ar' | 'en'} />
+        </div>
       </div>
     </div>
   );

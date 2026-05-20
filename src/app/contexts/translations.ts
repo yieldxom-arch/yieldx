@@ -121,6 +121,7 @@ export interface Translations {
 
   // Levels (Space Map)
   levels: {
+    level0: string;
     level1: string;
     level2: string;
     level3: string;
@@ -129,6 +130,7 @@ export interface Translations {
     level6: string;
     level7: string;
     level8: string;
+    level0Title: string;
     level1Title: string;
     level2Title: string;
     level3Title: string;
@@ -741,11 +743,12 @@ export const translations: Record<Language, Translations> = {
       videosCount: 'عدد الفيديوهات',
       rankPosition: 'موضعك في الترتيب',
       freeSessions: 'جلسات مجانية',
-      educationalPath: 'مسار تعليمي',
-      completeBySchedule: 'اكمل وفق الجدول الزمني',
+      educationalPath: 'رحلة دراسة الجدوى',
+      completeBySchedule: 'أكمل ٨ مستويات للحصول على دراسة جدوى كاملة لمشروعك',
     },
     levels: {
-      level1: 'لمستوى 1',
+      level0: 'المستوى 0',
+      level1: 'المستوى 1',
       level2: 'المستوى 2',
       level3: 'المستوى 3',
       level4: 'المستوى 4',
@@ -753,14 +756,15 @@ export const translations: Record<Language, Translations> = {
       level6: 'المستوى 6',
       level7: 'المستوى 7',
       level8: 'المستوى 8',
-      level1Title: 'معلومات المساهمين',
+      level0Title: 'اختيار نوع المشروع',
+      level1Title: 'تحليل السوق',
       level2Title: 'المتطلبات القانونية والتراخيص',
-      level3Title: 'إدارة الأصول',
-      level4Title: 'تخطيط الموظفين',
-      level5Title: 'المتطلبات التشغيلية',
-      level6Title: 'تحليل السوق',
-      level7Title: 'التخطيط المالي',
-      level8Title: 'ال��لخص التنفيذي',
+      level3Title: 'المتطلبات التشغيلية',
+      level4Title: 'إدارة الأصول',
+      level5Title: 'تخطيط الموظفين',
+      level6Title: 'التخطيط المالي',
+      level7Title: 'معلومات المساهمين وهيكل الملكية',
+      level8Title: 'الملخص التنفيذي',
       level1Subtitle: 'مقدمة في دراسة الجدوى',
       level2Subtitle: 'تحليل السوق',
       level3Subtitle: 'تحليل SWOT',
@@ -1342,10 +1346,11 @@ export const translations: Record<Language, Translations> = {
       videosCount: 'Number of Videos',
       rankPosition: 'Rank Position',
       freeSessions: 'Free Sessions',
-      educationalPath: 'Educational Path',
-      completeBySchedule: 'Complete by Schedule',
+      educationalPath: 'The Feasibility Study Journey',
+      completeBySchedule: 'Complete 8 levels to get a full feasibility study for your project',
     },
     levels: {
+      level0: 'Level 0',
       level1: 'Level 1',
       level2: 'Level 2',
       level3: 'Level 3',
@@ -1354,13 +1359,14 @@ export const translations: Record<Language, Translations> = {
       level6: 'Level 6',
       level7: 'Level 7',
       level8: 'Level 8',
-      level1Title: 'Shareholder Information',
-      level2Title: 'Legal Requirements and Licenses',
-      level3Title: 'Asset Management',
-      level4Title: 'Staff Planning',
-      level5Title: 'Operational Requirements',
-      level6Title: 'Market Analysis',
-      level7Title: 'Financial Planning',
+      level0Title: 'Project Type Selection',
+      level1Title: 'Market Analysis',
+      level2Title: 'Legal Requirements & Licenses',
+      level3Title: 'Operational Requirements',
+      level4Title: 'Asset Management',
+      level5Title: 'Staff Planning',
+      level6Title: 'Financial Planning',
+      level7Title: 'Shareholder Information & Ownership Structure',
       level8Title: 'Executive Summary',
       level1Subtitle: 'Introduction to Feasibility Study',
       level2Subtitle: 'Market Analysis',
