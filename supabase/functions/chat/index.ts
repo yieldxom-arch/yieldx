@@ -260,24 +260,46 @@ app.post("/", async (c) => {
     messages.push({ role: "user", content: userMessage });
 
     // ─ Step 6: Call Anthropic API ─
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1024,
-        system: systemPromptBase({
-          userName,
-          userRole,
-          language,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1024,
+          system: systemPromptBase({
+            userName,
+            userRole,
+            language,
+          }),
+          messages,
         }),
-        messages,
-      }),
-    });
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        return c.json(
+          {
+            error:
+              language === "ar"
+                ? "استغرق المساعد الذكي وقتاً طويلاً للرد. حاول مرة أخرى."
+                : "AI assistant took too long to respond. Please try again.",
+          } as ErrorResponseBody,
+          { status: 504 }
+        );
+      }
+      throw err;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
