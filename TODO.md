@@ -16,9 +16,9 @@
 - [x] Wire Approve/Reject buttons to the new Edge Functions.
 
 ## Step 5 — Build verification
-- [x] Run `npm run build` and confirm compilation.
+- [x] Run `npm run build` and confirm compilation. ✓ (no errors)
 
 ## Step 6 — Deployment instructions
-- [ ] Provide exact `supabase` CLI commands to deploy migration + edge functions.
-- [ ] Provide clear “where to click” instructions for admins in the UI.
+- [x] Provide exact `supabase` CLI commands to deploy migration + edge functions.
+- [x] Provide clear “where to click” instructions for admins in the UI.
 

@@ -1228,13 +1228,13 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     const { data: authSubscription } = sbClient.auth.onAuthStateChange((event: string, session: any) => {
-      console.log('[TIMING] onAuthStateChange fired', event, performance.now());
+
       if (event === 'SIGNED_IN' && session?.user) {
         const userId = session.user.id;
         setTimeout(async () => {
-          console.log('[TIMING] deferred SIGNED_IN handler start', performance.now());
+
           const profile = await fetchSupabaseUserProfile(userId);
-          console.log('[TIMING] deferred SIGNED_IN handler fetchSupabaseUserProfile resolved', performance.now());
+
           if (profile) {
             setUser(profile);
             setCurrentView('dashboard');
@@ -1410,9 +1410,9 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
 
     console.log('🌐 ONLINE login attempt via Supabase:', email);
     try {
-      console.log('[TIMING] before signInWithPassword', performance.now());
+
       const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-      console.log('[TIMING] after signInWithPassword resolved', performance.now());
+
       if (error) {
         console.error('❌ ERROR: Supabase login failed:', error.message || error);
         return false;
@@ -1482,7 +1482,7 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
         }
       })();
 
-      console.log('[TIMING] before login() returns true', performance.now());
+
       return true;
     } catch (e) {
       console.error('❌ ERROR: Supabase login exception:', e);

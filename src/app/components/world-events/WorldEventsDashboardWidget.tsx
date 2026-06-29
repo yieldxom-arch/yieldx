@@ -9,9 +9,30 @@ import { EVENT_CATEGORY_META, SEVERITY_META } from '@/app/data/worldEventsData';
 import { formatImpactMultiplier } from '@/app/utils/worldEventsEngine';
 
 export function WorldEventsDashboardWidget() {
-  const { language, setCurrentView, user } = useYieldX();
+  const { language, setCurrentView, user, theme } = useYieldX();
   const { activeEvents, upcomingEvents, aggregateImpact, unreadCount, getUserScore } = useWorldEvents();
   const isRTL = language === 'ar';
+  const isDark = theme === 'dark';
+
+  // This widget renders entirely via inline `style` objects (not Tailwind classes),
+  // so it must look up its own colors from `theme` — Tailwind's `dark:` variant has no effect here.
+  const palette = {
+    cardBg: isDark
+      ? 'linear-gradient(135deg, rgba(27,27,58,0.95), rgba(15,15,37,0.98))'
+      : 'linear-gradient(135deg, #ffffff, #f1f5f9)',
+    cardBorder: isDark ? '1px solid rgba(78,205,196,0.2)' : '1px solid rgba(78,205,196,0.35)',
+    emptyCardBg: isDark
+      ? 'linear-gradient(135deg, rgba(27,27,58,0.8), rgba(15,15,37,0.9))'
+      : 'linear-gradient(135deg, #ffffff, #f1f5f9)',
+    emptyCardBorder: isDark ? '1px solid rgba(78,205,196,0.12)' : '1px solid rgba(78,205,196,0.25)',
+    emptyText: isDark ? '#4B5563' : '#475569',
+    titleText: isDark ? '#E5E7EB' : '#1E293B',
+    mutedText: isDark ? '#9CA3AF' : '#64748B',
+    subtleText: isDark ? '#6B7280' : '#64748B',
+    dotInactive: isDark ? 'rgba(75,85,99,0.4)' : 'rgba(100,116,139,0.4)',
+    positiveText: isDark ? '#6EE7B7' : '#059669',
+    negativeText: isDark ? '#FCA5A5' : '#DC2626',
+  };
 
   const [currentIdx, setCurrentIdx] = React.useState(0);
   const displayEvents = [...activeEvents, ...upcomingEvents.slice(0, 2)];
@@ -31,8 +52,8 @@ export function WorldEventsDashboardWidget() {
   if (displayEvents.length === 0) {
     return (
       <Card style={{
-        background: 'linear-gradient(135deg, rgba(27,27,58,0.8), rgba(15,15,37,0.9))',
-        border: '1px solid rgba(78,205,196,0.12)',
+        background: palette.emptyCardBg,
+        border: palette.emptyCardBorder,
         borderRadius: 16,
         padding: '18px 20px',
         cursor: 'pointer',
@@ -40,7 +61,7 @@ export function WorldEventsDashboardWidget() {
       }} onClick={() => setCurrentView('world-events')}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Globe size={22} color="#4ECDC480" />
-          <span style={{ fontSize: 13, color: '#4B5563' }}>
+          <span style={{ fontSize: 13, color: palette.emptyText }}>
             {language === 'ar' ? 'لا توجد أحداث عالمية نشطة حالياً' : 'No active world events right now'}
           </span>
         </div>
@@ -54,8 +75,8 @@ export function WorldEventsDashboardWidget() {
   return (
     <Card
       style={{
-        background: 'linear-gradient(135deg, rgba(27,27,58,0.95), rgba(15,15,37,0.98))',
-        border: '1px solid rgba(78,205,196,0.2)',
+        background: palette.cardBg,
+        border: palette.cardBorder,
         borderRadius: 16,
         overflow: 'hidden',
         direction: isRTL ? 'rtl' : 'ltr',
@@ -81,7 +102,7 @@ export function WorldEventsDashboardWidget() {
               🌐
             </motion.div>
             <div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: palette.titleText }}>
                 {language === 'ar' ? 'الأحداث العالمية المباشرة' : 'Live World Events'}
               </span>
               {unreadCount > 0 && (
@@ -154,12 +175,12 @@ export function WorldEventsDashboardWidget() {
                       />
                     )}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#E5E7EB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: palette.titleText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {currentEvent.title[language]}
                   </div>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: palette.mutedText, lineHeight: 1.5 }}>
                 {currentEvent.shortDescription[language]}
               </div>
             </motion.div>
@@ -176,7 +197,7 @@ export function WorldEventsDashboardWidget() {
                 style={{
                   width: i === currentIdx ? 16 : 6, height: 6,
                   borderRadius: 3, border: 'none', cursor: 'pointer',
-                  background: i === currentIdx ? '#4ECDC4' : 'rgba(75,85,99,0.4)',
+                  background: i === currentIdx ? '#4ECDC4' : palette.dotInactive,
                   transition: 'all 0.3s',
                 }}
               />
@@ -190,17 +211,20 @@ export function WorldEventsDashboardWidget() {
             label={language === 'ar' ? 'المكافآت' : 'Rewards'}
             value={formatImpactMultiplier(aggregateImpact.rewardMultiplier, language)}
             positive={aggregateImpact.rewardMultiplier >= 1}
+            isDark={isDark}
           />
           <MiniMetric
             label={language === 'ar' ? 'الصعوبة' : 'Difficulty'}
             value={formatImpactMultiplier(aggregateImpact.challengeDifficulty, language)}
             positive={aggregateImpact.challengeDifficulty <= 1}
+            isDark={isDark}
           />
           {aggregateImpact.xpModifier !== 0 && (
             <MiniMetric
               label="XP"
               value={`${aggregateImpact.xpModifier > 0 ? '+' : ''}${aggregateImpact.xpModifier}`}
               positive={aggregateImpact.xpModifier > 0}
+              isDark={isDark}
             />
           )}
         </div>
@@ -212,7 +236,7 @@ export function WorldEventsDashboardWidget() {
             padding: '6px 10px', borderRadius: 8,
             background: 'rgba(78,205,196,0.06)', border: '1px solid rgba(78,205,196,0.12)',
           }}>
-            <span style={{ fontSize: 10, color: '#6B7280' }}>
+            <span style={{ fontSize: 10, color: palette.subtleText }}>
               {language === 'ar' ? 'نقاط تأثيرك العالمي' : 'Your Real-World Impact'}
             </span>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#4ECDC4' }}>
@@ -225,7 +249,10 @@ export function WorldEventsDashboardWidget() {
   );
 }
 
-function MiniMetric({ label, value, positive }: { label: string; value: string; positive: boolean }) {
+function MiniMetric({ label, value, positive, isDark }: { label: string; value: string; positive: boolean; isDark: boolean }) {
+  const mutedText = isDark ? '#9CA3AF' : '#64748B';
+  const positiveText = isDark ? '#6EE7B7' : '#059669';
+  const negativeText = isDark ? '#FCA5A5' : '#DC2626';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 4,
@@ -233,9 +260,9 @@ function MiniMetric({ label, value, positive }: { label: string; value: string; 
       background: positive ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
       border: `1px solid ${positive ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
     }}>
-      {positive ? <TrendingUp size={9} color="#6EE7B7" /> : <TrendingDown size={9} color="#FCA5A5" />}
-      <span style={{ color: '#9CA3AF' }}>{label}</span>
-      <span style={{ fontWeight: 700, color: positive ? '#6EE7B7' : '#FCA5A5' }}>{value}</span>
+      {positive ? <TrendingUp size={9} color={positiveText} /> : <TrendingDown size={9} color={negativeText} />}
+      <span style={{ color: mutedText }}>{label}</span>
+      <span style={{ fontWeight: 700, color: positive ? positiveText : negativeText }}>{value}</span>
     </div>
   );
 }

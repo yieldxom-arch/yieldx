@@ -93,9 +93,8 @@ export function AnimatedLoginForm() {
     };
 
     try {
-      console.log('[TIMING] before withTimeout(login(...))', performance.now());
-      const loginSuccess = await withTimeout(login(email, password, selectedRole), 60000);
-      console.log('[TIMING] withTimeout resolved', performance.now(), loginSuccess);
+      const loginSuccess = await withTimeout(login(email, password, selectedRole), 25000);
+
 
       if (!loginSuccess) {
       setError(language === 'ar' 
