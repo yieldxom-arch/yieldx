@@ -8,11 +8,11 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 
 export function Level7BMCImplementation() {
-  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateBMC, updateOman2040, bmcData, oman2040, projectTypeData, studyModeData, enhancedSWOT, financialKPIs, theme } = useYieldX();
-  
+  const { moduleData, updateModuleData, language, setCurrentView, updateBMC, updateOman2040, bmcData, oman2040, projectTypeData, studyModeData, enhancedSWOT, financialKPIs, theme } = useYieldX();
+
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level7'];
+  const savedData = moduleData['bmcImplementation'];
   
   // BMC State
   const [keyPartners, setKeyPartners] = useState<string[]>(
@@ -67,8 +67,10 @@ export function Level7BMCImplementation() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const currentLevel = levels.find(l => l.levelId === 7);
-  const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
+  // Standalone completion tracker — BMC Implementation is bonus content, not one of the
+  // official levelId 0-7 entries in INITIAL_LEVELS, so it does not use the shared levels/XP system.
+  const [isComplete, setIsComplete] = useState<boolean>(savedData?.completed || false);
+  const progressPercentage = isComplete ? 100 : 0;
 
   // Helper functions for array management
   const addItem = (arr: string[], setter: (arr: string[]) => void) => {
@@ -111,7 +113,7 @@ export function Level7BMCImplementation() {
   };
 
   // Save data automatically
-  const saveCurrentData = () => {
+  const saveCurrentData = (completedOverride?: boolean) => {
     const bmcDataToSave: BMCData = {
       keyPartners,
       keyActivities,
@@ -135,9 +137,10 @@ export function Level7BMCImplementation() {
       bmc: bmcDataToSave,
       oman2040: oman2040ToSave,
       milestones,
+      completed: completedOverride ?? isComplete,
     };
-    
-    updateModuleData('level7', data);
+
+    updateModuleData('bmcImplementation', data);
     updateBMC(bmcDataToSave);
     updateOman2040(oman2040ToSave);
   };
@@ -195,9 +198,10 @@ export function Level7BMCImplementation() {
         setTimeout(() => setSaveStatus('idle'), 4000);
       } else {
         setSaveStatus('saved');
-        
-        if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(7, currentLevel.maxXp, true);
+
+        if (!isComplete) {
+          setIsComplete(true);
+          saveCurrentData(true);
         }
 
         void (async () => {
@@ -272,7 +276,7 @@ export function Level7BMCImplementation() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-indigo-900'
               }`}>
-                {isRTL ? 'المستوى 7: النموذج الشامل والتنفيذ' : 'Level 7: Comprehensive Model & Implementation'}
+                {isRTL ? 'النموذج الشامل والتنفيذ' : 'Comprehensive Model & Implementation'}
               </h1>
               <p className={isDark ? 'text-indigo-200' : 'text-indigo-700'}>
                 {isRTL ? 'إكمال Business Model Canvas والجدول الزمني والمساهمة في رؤية عُمان 2040' : 'Complete Business Model Canvas, timeline, and Oman 2040 contribution'}

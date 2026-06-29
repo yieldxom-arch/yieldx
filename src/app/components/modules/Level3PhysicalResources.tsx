@@ -247,7 +247,7 @@ export function Level3PhysicalResources() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-green-900'
               }`}>
-                {isRTL ? 'المستوى 3: الموارد المادية والفنية' : 'Level 3: Physical Resources'}
+                {isRTL ? 'المستوى 4: الموارد المادية والفنية' : 'Level 4: Physical Resources'}
               </h1>
               <p className={isDark ? 'text-green-200' : 'text-green-700'}>
                 {isRTL ? 'حساب الأصول والمواد الخام والإهلاك' : 'Calculate assets, raw materials, and depreciation'}

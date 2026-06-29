@@ -193,7 +193,7 @@ export function Level1IdentityOwnership() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-purple-900'
               }`}>
-                {isRTL ? 'المستوى 1: الهوية والملكية' : 'Level 1: Identity & Ownership'}
+                {isRTL ? 'المستوى 7: الهوية والملكية' : 'Level 7: Identity & Ownership'}
               </h1>
               <p className={isDark ? 'text-purple-200' : 'text-purple-700'}>
                 {isRTL ? 'تحديد تفاصيل المشروع الأساسية وهيكل الملكية' : 'Define basic project details and ownership structure'}

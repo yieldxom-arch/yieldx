@@ -215,7 +215,7 @@ export function Level4HumanResources() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-orange-900'
               }`}>
-                {isRTL ? 'المستوى 4: الموارد البشرية والتنظيمية' : 'Level 4: Human Resources'}
+                {isRTL ? 'المستوى 5: الموارد البشرية والتنظيمية' : 'Level 5: Human Resources'}
               </h1>
               <p className={isDark ? 'text-orange-200' : 'text-orange-700'}>
                 {isRTL ? 'بناء الهيكل الوظيفي وحساب تكاليف الموارد البشرية' : 'Build organizational structure and calculate HR costs'}

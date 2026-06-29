@@ -423,7 +423,7 @@ export function Level5MarketStrategy() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-pink-900'
               }`}>
-                {isRTL ? 'المستوى 5: السوق والاستراتيجية' : 'Level 5: Market & Strategy'}
+                {isRTL ? 'المستوى 1: السوق والاستراتيجية' : 'Level 1: Market & Strategy'}
               </h1>
               <p className={isDark ? 'text-pink-200' : 'text-pink-700'}>
                 {isRTL ? 'تحليل المنافسين وتحديد المنتجات وإجراء تحليل SWOT متطور' : 'Analyze competitors, define products, conduct advanced SWOT analysis'}

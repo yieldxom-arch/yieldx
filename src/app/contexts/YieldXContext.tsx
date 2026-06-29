@@ -1040,7 +1040,7 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
     try {
       const { data: profile, error: profileError } = await sbClient
         .from('users')
-        .select('id, name, email, role, avatar_url, total_xp, current_level, profile_visibility, country, university, bio')
+        .select('id, name, email, role, avatar_url, total_xp, current_level, profile_visibility, country, university, bio, subscription_tier')
         .eq('id', userId)
         .single();
 
@@ -1060,7 +1060,7 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
         country: profile.country,
         university: profile.university,
         bio: profile.bio,
-        subscriptionTier: 'free',
+        subscriptionTier: (profile as any).subscription_tier || 'free',
         maxProjects: 1,
       };
     } catch (e) {
@@ -1423,7 +1423,7 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
         name: (userMeta.full_name as string) || email.split('@')[0],
         email,
         role: normalizeUserRole(userMeta.role || role),
-        subscriptionTier: 'free',
+        subscriptionTier: undefined,
         maxProjects: 1,
       };
 
