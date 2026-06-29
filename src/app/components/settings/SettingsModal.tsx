@@ -25,7 +25,7 @@ import { SUBSCRIPTION_PLANS } from '@/app/data/subscriptionData';
 import type { SubscriptionTier } from '@/app/contexts/YieldXContext';
 
 export function SettingsModal() {
-  const { user, updateUser, language: contextLanguage, setLanguage: setContextLanguage, theme: contextTheme, setTheme: setContextTheme } = useYieldX();
+  const { user, updateUser, language: contextLanguage, setLanguage: setContextLanguage, theme: contextTheme, setTheme: setContextTheme, setCurrentView } = useYieldX();
   
   // Get translations for current language
   const t = translations[contextLanguage];
@@ -1336,6 +1336,22 @@ export function SettingsModal() {
               </Button>
             </div>
           </Card>
+
+          {/* Admin Tools - Admin Only */}
+          {user?.role === 'admin' && (
+            <Card className="bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-[#4ECDC4]/10 dark:to-emerald-500/10 border-teal-200 dark:border-[#4ECDC4]/30 p-4">
+              <h3 className="text-slate-900 dark:text-white font-semibold mb-3 flex items-center gap-2">
+                <span className="text-[#4ECDC4]">⚙</span>
+                {language === 'ar' ? 'أدوات المدير' : 'Admin Tools'}
+              </h3>
+              <button
+                onClick={() => { setCurrentView('admin-upgrade-requests'); }}
+                className="w-full text-start px-4 py-3 rounded-lg bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 border border-[#4ECDC4]/30 text-slate-900 dark:text-white text-sm font-medium transition-colors"
+              >
+                {language === 'ar' ? 'طلبات الترقية — الموافقة اليدوية' : 'Upgrade Requests — Manual Approval'}
+              </button>
+            </Card>
+          )}
 
           {/* AI Configuration - Admin Only */}
           {user?.role === 'admin' && (

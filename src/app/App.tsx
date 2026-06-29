@@ -61,6 +61,7 @@ import { MigrationButton } from '@/app/components/admin/MigrationButton';
 import { WorldEventsProvider } from '@/app/contexts/WorldEventsContext';
 import { WorldEventsPage } from '@/app/components/world-events/WorldEventsPage';
 import { WorldEventsAdmin } from '@/app/components/admin/WorldEventsAdmin';
+import { UpgradeRequestsAdmin } from '@/app/components/admin/UpgradeRequestsAdmin';
 import { BusinessResources } from '@/app/components/BusinessResources';
 import { Certificate } from '@/app/components/Certificate';
 import { SimpleCertificate } from '@/app/components/SimpleCertificate';
@@ -168,6 +169,8 @@ function AppContent() {
         return <WorldEventsPage />;
       case 'admin-world-events':
         return <WorldEventsAdmin />;
+      case 'admin-upgrade-requests':
+        return <UpgradeRequestsAdmin />;
       // TEST: Supabase Connection
       case 'test-supabase':
         return <SupabaseTest />;
