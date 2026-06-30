@@ -9,12 +9,21 @@ import { generateFeasibilityReport } from '@/lib/ai';
 import jsPDF from 'jspdf';
 
 export function CompletionReport() {
-  const { user, levels, moduleData, totalXP, language } = useYieldX();
+  const { user, levels, moduleData, totalXP, language, theme } = useYieldX();
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportText, setReportText] = useState<string | null>(null);
+  const isDark = theme === 'dark';
 
   const completedLevels = levels.filter((l) => l.completed).length;
   const completionPercentage = (completedLevels / levels.length) * 100;
+
+  // This panel renders inside a dialog that now switches between light/dark —
+  // its own "glass on dark" styling must follow suit instead of staying white-text-only.
+  const cardBg = isDark ? 'bg-white/10 border-white/20' : 'bg-slate-900/5 border-slate-900/10';
+  const cardBgFaint = isDark ? 'bg-white/5 border-white/10' : 'bg-slate-900/5 border-slate-900/10';
+  const titleText = isDark ? 'text-white' : 'text-slate-900';
+  const mutedText = isDark ? 'text-purple-200' : 'text-purple-700';
+  const mutedTextAlt = isDark ? 'text-purple-300' : 'text-purple-600';
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
@@ -68,60 +77,60 @@ export function CompletionReport() {
           >
             <Award className="w-24 h-24 mx-auto text-yellow-400 mb-4" />
           </motion.div>
-          <h2 className="text-4xl font-bold text-white mb-2">
+          <h2 className={`text-4xl font-bold mb-2 ${titleText}`}>
             تهانينا على إنجازك!
           </h2>
-          <p className="text-purple-200 text-lg">
+          <p className={`text-lg ${mutedText}`}>
             لقد أكملت {completedLevels} من {levels.length} مستوى
           </p>
-          <div className="mt-4 inline-block bg-white/10 px-6 py-3 rounded-full">
-            <p className="text-white text-2xl font-bold">{totalXP} XP</p>
+          <div className={`mt-4 inline-block px-6 py-3 rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-900/10'}`}>
+            <p className={`text-2xl font-bold ${titleText}`}>{totalXP} XP</p>
           </div>
         </div>
       </Card>
 
       {/* Progress Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm p-6">
+        <Card className={`backdrop-blur-sm p-6 ${cardBg}`}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-400" />
             </div>
             <div>
-              <p className="text-white text-sm">نسبة الإنجاز</p>
-              <p className="text-2xl font-bold text-white">{Math.round(completionPercentage)}%</p>
+              <p className={`text-sm ${titleText}`}>نسبة الإنجاز</p>
+              <p className={`text-2xl font-bold ${titleText}`}>{Math.round(completionPercentage)}%</p>
             </div>
           </div>
         </Card>
 
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm p-6">
+        <Card className={`backdrop-blur-sm p-6 ${cardBg}`}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
               <FileText className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <p className="text-white text-sm">الأقسام المكتملة</p>
-              <p className="text-2xl font-bold text-white">{completedLevels}/{levels.length}</p>
+              <p className={`text-sm ${titleText}`}>الأقسام المكتملة</p>
+              <p className={`text-2xl font-bold ${titleText}`}>{completedLevels}/{levels.length}</p>
             </div>
           </div>
         </Card>
 
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm p-6">
+        <Card className={`backdrop-blur-sm p-6 ${cardBg}`}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-purple-400" />
             </div>
             <div>
-              <p className="text-white text-sm">إجمالي النقاط</p>
-              <p className="text-2xl font-bold text-white">{totalXP}</p>
+              <p className={`text-sm ${titleText}`}>إجمالي النقاط</p>
+              <p className={`text-2xl font-bold ${titleText}`}>{totalXP}</p>
             </div>
           </div>
         </Card>
       </div>
 
       {/* Module Details */}
-      <Card className="bg-white/10 border-white/20 backdrop-blur-sm p-6">
-        <h3 className="text-white text-xl font-bold mb-4">ملخص الأقسام</h3>
+      <Card className={`backdrop-blur-sm p-6 ${cardBg}`}>
+        <h3 className={`text-xl font-bold mb-4 ${titleText}`}>ملخص الأقسام</h3>
         <div className="space-y-4">
           {levels.map((level) => (
             <div key={level.levelId}>
@@ -131,21 +140,21 @@ export function CompletionReport() {
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                       level.completed
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-700 text-gray-400'
+                        : isDark ? 'bg-gray-700 text-gray-400' : 'bg-slate-200 text-slate-500'
                     }`}
                   >
                     {level.completed ? '✓' : level.levelId}
                   </div>
-                  <p className="text-white">{level.title}</p>
+                  <p className={titleText}>{level.title}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-purple-300 text-sm">
+                  <p className={`text-sm ${mutedTextAlt}`}>
                     {level.xp} / {level.maxXp} XP
                   </p>
                 </div>
               </div>
               {level.levelId < levels.length && (
-                <Separator className="bg-white/10 mt-2" />
+                <Separator className={`mt-2 ${isDark ? 'bg-white/10' : 'bg-slate-900/10'}`} />
               )}
             </div>
           ))}
@@ -157,7 +166,7 @@ export function CompletionReport() {
         <Button
           onClick={handleGenerateReport}
           disabled={isGenerating}
-          className="flex-1 bg-gradient-to-r from-[#4ECDC4] to-teal-600 hover:opacity-90"
+          className="flex-1 bg-gradient-to-r from-[#4ECDC4] to-teal-600 hover:opacity-90 text-white"
           size="lg"
         >
           {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Sparkles className="w-5 h-5 mr-2" />}
@@ -166,17 +175,17 @@ export function CompletionReport() {
         <Button
           onClick={handleDownloadPDF}
           disabled={!reportText}
-          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
           size="lg"
         >
           <Download className="w-5 h-5 mr-2" />
           {language === 'ar' ? 'تحميل PDF' : 'Download PDF'}
         </Button>
-        
+
         <Button
           onClick={shareReport}
           variant="outline"
-          className="bg-white/10 border-white/20 hover:bg-white/20"
+          className={isDark ? 'bg-white/10 border-white/20 hover:bg-white/20 text-white' : 'bg-slate-900/5 border-slate-900/10 hover:bg-slate-900/10 text-slate-900'}
           size="lg"
         >
           <Share2 className="w-5 h-5 mr-2" />
@@ -187,11 +196,11 @@ export function CompletionReport() {
       {/* Key Insights */}
       {completionPercentage === 100 && (
         <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30 p-6">
-          <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
+          <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${titleText}`}>
             <Award className="w-6 h-6 text-yellow-400" />
             إنجاز متميز!
           </h3>
-          <div className="space-y-2 text-green-100">
+          <div className={`space-y-2 ${isDark ? 'text-green-100' : 'text-green-800'}`}>
             <p>✨ لقد أكملت جميع مراحل دراسة الجدوى بنجاح</p>
             <p>📊 حصلت على {totalXP} نقطة خبرة</p>
             <p>🎯 يمكنك الآن تحميل التقرير الشامل لمشروعك</p>
@@ -202,18 +211,18 @@ export function CompletionReport() {
 
       {/* Company Info Preview */}
       {moduleData['module-1'] && (
-        <Card className="bg-white/5 border-white/10 p-6">
-          <h3 className="text-white text-lg font-bold mb-4">معلومات المشروع</h3>
+        <Card className={`p-6 ${cardBgFaint}`}>
+          <h3 className={`text-lg font-bold mb-4 ${titleText}`}>معلومات المشروع</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-purple-300 text-sm">اسم الشركة</p>
-              <p className="text-white font-semibold">
+              <p className={`text-sm ${mutedTextAlt}`}>اسم الشركة</p>
+              <p className={`font-semibold ${titleText}`}>
                 {moduleData['module-1'].companyName || 'غير محدد'}
               </p>
             </div>
             <div>
-              <p className="text-purple-300 text-sm">رأس المال</p>
-              <p className="text-white font-semibold">
+              <p className={`text-sm ${mutedTextAlt}`}>رأس المال</p>
+              <p className={`font-semibold ${titleText}`}>
                 {moduleData['module-1'].totalCapital
                   ? `${Number(moduleData['module-1'].totalCapital).toLocaleString()} ريال`
                   : 'غير محدد'}
@@ -224,12 +233,12 @@ export function CompletionReport() {
       )}
       {/* AI-Generated Feasibility Study Report */}
       {reportText && (
-        <Card className="bg-white/5 border-[#4ECDC4]/30 p-6">
-          <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
+        <Card className={`p-6 border-[#4ECDC4]/30 ${isDark ? 'bg-white/5' : 'bg-slate-900/5'}`}>
+          <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${titleText}`}>
             <Sparkles className="w-5 h-5 text-[#4ECDC4]" />
             {language === 'ar' ? 'دراسة الجدوى المُولَّدة بالذكاء الاصطناعي' : 'AI-Generated Feasibility Study'}
           </h3>
-          <pre className="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed font-sans">{reportText}</pre>
+          <pre className={`text-sm whitespace-pre-wrap leading-relaxed font-sans ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{reportText}</pre>
         </Card>
       )}
     </div>
