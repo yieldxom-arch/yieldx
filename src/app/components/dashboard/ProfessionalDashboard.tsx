@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Star, LogOut, QrCode, FileBarChart, Briefcase, Users as UsersIcon, TrendingUp, FileText, PlayCircle, Crown, MessageSquare, UserCheck, Rocket, Save, FolderOpen, CheckCircle, Edit3, Download, Award } from 'lucide-react';
+import { Trophy, Star, LogOut, QrCode, FileBarChart, Briefcase, Users as UsersIcon, TrendingUp, FileText, PlayCircle, Crown, MessageSquare, UserCheck, Rocket, Save, FolderOpen, CheckCircle, Edit3, Download, Award, Brain, Sparkles } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
 import { EnhancedSpaceMap } from '@/app/components/space-map/EnhancedSpaceMap';
@@ -483,6 +483,14 @@ export function ProfessionalDashboard() {
           </motion.div>
         )}
 
+        {/* ─── Section: Your Progress ─── */}
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-slate-700 dark:text-slate-200 text-base font-bold whitespace-nowrap">
+            📊 {language === 'ar' ? 'تقدمك' : 'Your Progress'}
+          </h2>
+          <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+        </div>
+
         {/* Stats Overview */}
         <div ref={progressSectionRef} className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 scroll-mt-20">
           <motion.div
@@ -563,50 +571,83 @@ export function ProfessionalDashboard() {
           </motion.div>
         </div>
 
-        {/* AI Tools anchor — visible banner content added in a later pass */}
-        <div ref={aiToolsSectionRef} className="scroll-mt-20" />
+        {/* ─── Section: Your AI Tools ─── */}
+        <div ref={aiToolsSectionRef} className="mt-10 scroll-mt-20">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-slate-700 dark:text-slate-200 text-base font-bold whitespace-nowrap">
+              🤖 {language === 'ar' ? 'أدواتك الذكية' : 'Your AI Tools'}
+            </h2>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
 
-        {/* ── Secondary widgets — explore more, lower visual priority ── */}
-        <div className="flex items-center gap-3 mt-10 mb-6">
-          <h2 className="text-slate-500 dark:text-slate-400 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
-            {language === 'ar' ? 'استكشف المزيد' : 'Explore More'}
+          {/* AI Tools banner — two clickable cards revealing the floating tools */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {/* Chat with AI Assistant */}
+            <Card
+              className="bg-gradient-to-br from-[#4ECDC4]/10 to-[#7FDBCA]/10 border-[#4ECDC4]/30 dark:border-[#4ECDC4]/40 p-5 cursor-pointer hover:border-[#4ECDC4]/60 hover:shadow-lg hover:shadow-[#4ECDC4]/10 transition-all group"
+              onClick={() => window.dispatchEvent(new CustomEvent('yieldx:open-chatbot'))}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4ECDC4] to-[#5DD9C1] flex items-center justify-center shadow-md shrink-0">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">
+                    {language === 'ar' ? 'المساعد الذكي' : 'AI Assistant'}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                    {language === 'ar' ? 'أسئلة، إرشادات، ومساعدة فورية' : 'Questions, guidance, and instant help'}
+                  </p>
+                </div>
+                <Sparkles className="w-5 h-5 text-[#4ECDC4] group-hover:scale-110 transition-transform shrink-0" />
+              </div>
+            </Card>
+
+            {/* AI Business Advisors */}
+            <Card
+              className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 border-purple-300/40 dark:border-purple-500/40 p-5 cursor-pointer hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/10 transition-all group"
+              onClick={() => window.dispatchEvent(new CustomEvent('yieldx:open-copilot-bridge'))}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-md shrink-0">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">
+                    {language === 'ar' ? 'مستشارو الأعمال الذكيون' : 'AI Business Advisors'}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                    {language === 'ar' ? 'أطلس (CFO) · نوفا (CMO) · أوريون (CEO)' : 'Atlas (CFO) · Nova (CMO) · Orion (CEO)'}
+                  </p>
+                </div>
+                <Brain className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform shrink-0" />
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* ─── Section: Additional Resources ─── */}
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-slate-700 dark:text-slate-200 text-base font-bold whitespace-nowrap">
+            📚 {language === 'ar' ? 'موارد إضافية' : 'Additional Resources'}
           </h2>
           <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
         </div>
 
-        {/* NEW: Daily Streaks + Live World Events Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 items-start">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <StreaksWidget />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-          >
-            <WorldEventsDashboardWidget />
-          </motion.div>
-        </div>
-
-        {/* NEW: Video Library & Subscription Cards */}
-        <div ref={resourcesSectionRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 scroll-mt-20">
+        {/* Video Library + Subscription + Consultation — 3 columns */}
+        <div ref={resourcesSectionRef} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 scroll-mt-20">
           {/* Video Library Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card 
+            <Card
               className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-[#4ECDC4]/10 dark:to-[#7FDBCA]/10 border-purple-200 dark:border-[#4ECDC4]/30 backdrop-blur-sm p-6 cursor-pointer hover:border-purple-400 dark:hover:border-[#4ECDC4]/50 transition-all group shadow-lg"
               onClick={() => setCurrentView('video-library')}
             >
               <div className="flex items-center justify-between mb-4">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-br from-[#4ECDC4] to-[#7FDBCA] rounded-xl p-3 shadow-lg"
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   transition={{ duration: 0.2 }}
@@ -631,12 +672,12 @@ export function ProfessionalDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <Card 
+            <Card
               className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-purple-500/10 dark:to-pink-500/10 border-amber-200 dark:border-purple-500/30 backdrop-blur-sm p-6 cursor-pointer hover:border-amber-400 dark:hover:border-purple-500/50 transition-all group shadow-lg"
               onClick={() => setShowSubscriptionModal(true)}
             >
               <div className="flex items-center justify-between mb-4">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-br from-amber-400 to-yellow-500 dark:from-purple-500 dark:to-pink-500 rounded-xl p-3 shadow-lg"
                   whileHover={{ scale: 1.05, rotate: -5 }}
                   transition={{ duration: 0.2 }}
@@ -654,7 +695,7 @@ export function ProfessionalDashboard() {
               </div>
               <h3 className="text-slate-900 dark:text-white text-xl font-bold mb-2">{t.dashboard.subscriptionManagement}</h3>
               <p className="text-amber-700 dark:text-purple-300 text-sm mb-4">
-                {user?.subscriptionTier === 'free' 
+                {user?.subscriptionTier === 'free'
                   ? (language === 'ar' ? 'ترقية خطتك للحصول على مزايا حصرية' : 'Upgrade your plan to get exclusive benefits')
                   : (language === 'ar' ? 'إدارة اشتراكك والميزات' : 'Manage your subscription and features')
                 }
@@ -664,22 +705,60 @@ export function ProfessionalDashboard() {
               </Button>
             </Card>
           </motion.div>
-        </div>
 
-        {/* NEW FEATURES: Leaderboard, Messaging, Professional Consultation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Leaderboard Card */}
+          {/* Professional Consultation Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <Card 
+            <Card
+              className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-500/10 dark:to-rose-500/10 border-pink-200 dark:border-pink-500/30 backdrop-blur-sm p-6 cursor-pointer hover:border-pink-400 dark:hover:border-pink-500/50 transition-all group shadow-lg"
+              onClick={() => setCurrentView('professional-consultation')}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <motion.div
+                  className="bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl p-3 shadow-lg"
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <UserCheck className="w-8 h-8 text-white" />
+                </motion.div>
+                <div className="bg-green-500/20 px-3 py-1 rounded-full">
+                  <p className="text-green-600 dark:text-green-400 text-xs font-bold">{language === 'ar' ? '3 مجانية' : '3 free'}</p>
+                </div>
+              </div>
+              <h3 className="text-slate-900 dark:text-white text-xl font-bold mb-2">{language === 'ar' ? 'استشارات احترافي' : 'Professional Consultations'}</h3>
+              <p className="text-pink-700 dark:text-pink-300 text-sm mb-4">{language === 'ar' ? 'احصل على مشورة من خبراء معتمدين' : 'Get advice from certified experts'}</p>
+              <Button className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-rose-500 hover:to-pink-500 text-white font-semibold shadow-lg group-hover:shadow-xl transition-all">
+                {t.dashboard.browseExperts}
+              </Button>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* ─── Section: Community ─── */}
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-slate-700 dark:text-slate-200 text-base font-bold whitespace-nowrap">
+            🌐 {language === 'ar' ? 'المجتمع' : 'Community'}
+          </h2>
+          <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+        </div>
+
+        {/* Leaderboard + Messaging */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Leaderboard Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+          >
+            <Card
               className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-500/10 dark:to-amber-500/10 border-yellow-200 dark:border-yellow-500/30 backdrop-blur-sm p-6 cursor-pointer hover:border-yellow-400 dark:hover:border-yellow-500/50 transition-all group shadow-lg"
               onClick={() => setCurrentView('leaderboard')}
             >
               <div className="flex items-center justify-between mb-4">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl p-3 shadow-lg"
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   transition={{ duration: 0.2 }}
@@ -702,14 +781,14 @@ export function ProfessionalDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.9 }}
           >
-            <Card 
+            <Card
               className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border-blue-200 dark:border-blue-500/30 backdrop-blur-sm p-6 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/50 transition-all group shadow-lg"
               onClick={() => setCurrentView('messaging')}
             >
               <div className="flex items-center justify-between mb-4">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl p-3 shadow-lg"
                   whileHover={{ scale: 1.05, rotate: -5 }}
                   transition={{ duration: 0.2 }}
@@ -727,35 +806,24 @@ export function ProfessionalDashboard() {
               </Button>
             </Card>
           </motion.div>
+        </div>
 
-          {/* Professional Consultation Card */}
+        {/* Streaks + World Events (community engagement) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 items-start">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
+            transition={{ delay: 0.4 }}
           >
-            <Card 
-              className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-500/10 dark:to-rose-500/10 border-pink-200 dark:border-pink-500/30 backdrop-blur-sm p-6 cursor-pointer hover:border-pink-400 dark:hover:border-pink-500/50 transition-all group shadow-lg"
-              onClick={() => setCurrentView('professional-consultation')}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <motion.div 
-                  className="bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl p-3 shadow-lg"
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <UserCheck className="w-8 h-8 text-white" />
-                </motion.div>
-                <div className="bg-green-500/20 px-3 py-1 rounded-full">
-                  <p className="text-green-600 dark:text-green-400 text-xs font-bold">{language === 'ar' ? '3 مجانية' : '3 free'}</p>
-                </div>
-              </div>
-              <h3 className="text-slate-900 dark:text-white text-xl font-bold mb-2">{language === 'ar' ? 'استشارات احترافي' : 'Professional Consultations'}</h3>
-              <p className="text-pink-700 dark:text-pink-300 text-sm mb-4">{language === 'ar' ? 'احصل على مشورة من خبراء معتمدين' : 'Get advice from certified experts'}</p>
-              <Button className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-rose-500 hover:to-pink-500 text-white font-semibold shadow-lg group-hover:shadow-xl transition-all">
-                {t.dashboard.browseExperts}
-              </Button>
-            </Card>
+            <StreaksWidget />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+          >
+            <WorldEventsDashboardWidget />
           </motion.div>
         </div>
 
