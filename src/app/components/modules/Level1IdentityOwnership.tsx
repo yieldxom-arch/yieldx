@@ -23,7 +23,7 @@ export function Level1IdentityOwnership() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level7'];
+  const savedData = moduleData['level1'];
   
   // State
   const [businessName, setBusinessName] = useState(savedData?.businessName || '');
@@ -38,10 +38,10 @@ export function Level1IdentityOwnership() {
   );
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level7']?.aiFeedback || null);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level1']?.aiFeedback || null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 7);
+  const currentLevel = levels.find(l => l.levelId === 1);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Calculate total share percentage
@@ -64,7 +64,7 @@ export function Level1IdentityOwnership() {
       location,
       owners,
     };
-    updateModuleData('level7', data);
+    updateModuleData('level1', data);
   };
 
   useEffect(() => {
@@ -146,9 +146,9 @@ export function Level1IdentityOwnership() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(7, currentLevel.maxXp, true);
-          getLevelAiFeedback(7, moduleData['level7'] || {}, language as 'ar' | 'en')
-            .then(fb => { setAiFeedback(fb); updateModuleData('level7', { aiFeedback: fb }); })
+          updateLevelProgress(1, currentLevel.maxXp, true);
+          getLevelAiFeedback(1, moduleData['level1'] || {}, language as 'ar' | 'en')
+            .then(fb => { setAiFeedback(fb); updateModuleData('level1', { aiFeedback: fb }); })
             .catch(() => {})
             .finally(() => setIsLoadingAi(false));
           setIsLoadingAi(true);
@@ -193,7 +193,7 @@ export function Level1IdentityOwnership() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-purple-900'
               }`}>
-                {isRTL ? 'المستوى 7: الهوية والملكية' : 'Level 7: Identity & Ownership'}
+                {isRTL ? 'المستوى 1: الهوية والملكية' : 'Level 1: Identity & Ownership'}
               </h1>
               <p className={isDark ? 'text-purple-200' : 'text-purple-700'}>
                 {isRTL ? 'تحديد تفاصيل المشروع الأساسية وهيكل الملكية' : 'Define basic project details and ownership structure'}

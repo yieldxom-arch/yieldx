@@ -96,8 +96,8 @@ const faqs: FAQ[] = [
   {
     question: 'ماذا يحتوي كل مستوى؟',
     questionEn: 'What does each level cover?',
-    answer: 'المستويات الثمانية (0-7) وفق معايير الجدوى العُمانية:\n0️⃣ اختيار نوع المشروع - زراعي/صناعي/تجاري/خدمي\n1️⃣ السوق والاستراتيجية - تحليل السوق وSWOT\n2️⃣ الإطار القانوني والتنظيمي - التراخيص والمتطلبات\n3️⃣ المتطلبات التشغيلية - الموقع والمرافق\n4️⃣ الموارد المادية والفنية - الأصول والمعدات والإهلاك\n5️⃣ الموارد البشرية والتنظيمية - التوظيف والتعمين\n6️⃣ التمويل والمؤشرات المالية - الخطة المالية وKPIs\n7️⃣ الهوية والملكية - معلومات المشروع والملاك',
-    answerEn: 'The eight levels (0–7), aligned with Omani feasibility study standards:\n0️⃣ Project Type Selection – Agricultural/Industrial/Commercial/Service\n1️⃣ Market & Strategy – market analysis and SWOT\n2️⃣ Legal Framework – licenses and requirements\n3️⃣ Operational Requirements – location and facilities\n4️⃣ Physical Resources – assets, equipment, and depreciation\n5️⃣ Human Resources – hiring and Omanization\n6️⃣ Financing & Financial KPIs – financial plan and KPIs\n7️⃣ Identity & Ownership – project and owner information',
+    answer: 'المستويات الثمانية (0-7) وفق معايير الجدوى العُمانية:\n0️⃣ اختيار نوع المشروع - زراعي/صناعي/تجاري/خدمي\n1️⃣ الهوية والملكية - اسم المشروع والملاك وهيكل الملكية\n2️⃣ الإطار القانوني والتنظيمي - التراخيص والمتطلبات\n3️⃣ المتطلبات التشغيلية - الموقع والمرافق\n4️⃣ الموارد المادية والفنية - الأصول والمعدات والإهلاك\n5️⃣ الموارد البشرية والتنظيمية - التوظيف والتعمين\n6️⃣ التمويل والمؤشرات المالية - الخطة المالية وKPIs\n7️⃣ السوق والاستراتيجية - تحليل المنافسين وSWOT',
+    answerEn: 'The eight levels (0–7), aligned with Omani feasibility study standards:\n0️⃣ Project Type Selection – Agricultural/Industrial/Commercial/Service\n1️⃣ Identity & Ownership – business name, owners, share distribution\n2️⃣ Legal Framework – licenses and requirements\n3️⃣ Operational Requirements – location and facilities\n4️⃣ Physical Resources – assets, equipment, and depreciation\n5️⃣ Human Resources – hiring and Omanization\n6️⃣ Financing & Financial KPIs – financial plan and KPIs\n7️⃣ Market & Strategy – competitor analysis and SWOT',
     keywords: ['مستويات', 'محتوى', 'levels', 'modules', 'ماذا', 'يحتوي', 'أقسام', 'المستويات', 'شو فيه', 'ايش في', 'الاقسام', 'what does each level', 'level content']
   },
   {
@@ -136,11 +136,11 @@ const faqs: FAQ[] = [
     keywords: ['مستوى 0', 'نوع المشروع', 'زراعي', 'صناعي', 'تجاري', 'خدمي', 'اختيار', 'level 0', 'project type', 'القطاع', 'sector']
   },
   {
-    question: 'ما هو تحليل SWOT المعزز في المستوى 1؟',
-    questionEn: 'What is the enhanced SWOT analysis in Level 1?',
-    answer: 'المستوى 1 يتضمن تحليل SWOT متقدماً:\n💪 نقاط القوة\n⚠️ نقاط الضعف\n🚀 الفرص\n🎯 التهديدات\n\nبالإضافة إلى:\n• مقارنة السيناريوهات المتعددة\n• معايير أداء القطاع\n• مؤشرات KPI مخصصة لنوع مشروعك',
-    answerEn: 'Level 1 includes an advanced SWOT analysis:\n💪 Strengths\n⚠️ Weaknesses\n🚀 Opportunities\n🎯 Threats\n\nPlus:\n• Multi-scenario comparison\n• Sector performance benchmarks\n• KPI indicators tailored to your project type',
-    keywords: ['swot', 'تحليل', 'نقاط القوة', 'نقاط الضعف', 'فرص', 'تهديدات', 'مستوى 1', 'level 1', 'السوق', 'استراتيجية', 'strategy', 'market']
+    question: 'ما هو تحليل SWOT المعزز في المستوى 7؟',
+    questionEn: 'What is the enhanced SWOT analysis in Level 7?',
+    answer: 'المستوى 7 يتضمن تحليل SWOT متقدماً:\n💪 نقاط القوة\n⚠️ نقاط الضعف\n🚀 الفرص\n🎯 التهديدات\n\nبالإضافة إلى:\n• مقارنة السيناريوهات المتعددة\n• معايير أداء القطاع\n• مؤشرات KPI مخصصة لنوع مشروعك',
+    answerEn: 'Level 7 includes an advanced SWOT analysis:\n💪 Strengths\n⚠️ Weaknesses\n🚀 Opportunities\n🎯 Threats\n\nPlus:\n• Multi-scenario comparison\n• Sector performance benchmarks\n• KPI indicators tailored to your project type',
+    keywords: ['swot', 'تحليل', 'نقاط القوة', 'نقاط الضعف', 'فرص', 'تهديدات', 'مستوى 7', 'level 7', 'السوق', 'استراتيجية', 'strategy', 'market']
   },
   {
     question: 'ما هو Business Model Canvas (BMC)؟',

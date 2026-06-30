@@ -186,7 +186,7 @@ function AppContent() {
       case 'module-0':
         return <ProjectTypeModule />;
       case 'module-1':
-        return <MarketStrategyModule />;
+        return <IdentityOwnershipModule />;
       case 'module-2':
         return <LegalFrameworkModule />;
       case 'module-3':
@@ -200,7 +200,7 @@ function AppContent() {
       case 'module-6':
         return <FinancingKPIsModule />;
       case 'module-7':
-        return <IdentityOwnershipModule />;
+        return <MarketStrategyModule />;
       case 'project-3d-view':
         return (
           <React.Suspense

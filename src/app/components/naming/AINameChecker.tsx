@@ -381,7 +381,7 @@ export function AINameChecker({ value, businessName, language = 'en', onChange, 
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full px-4 py-2 bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
         placeholder={placeholder || (language === 'ar' ? 'أدخل اسم المشروع' : 'Enter business name')}
       />
 

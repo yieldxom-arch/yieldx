@@ -31,7 +31,7 @@ export function Level5MarketStrategy() {
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
-  const savedData = moduleData['level1'];
+  const savedData = moduleData['level7'];
   
   // State
   const [competitors, setCompetitors] = useState<Competitor[]>(
@@ -76,10 +76,10 @@ export function Level5MarketStrategy() {
   
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level1']?.aiFeedback || null);
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level7']?.aiFeedback || null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const currentLevel = levels.find(l => l.levelId === 1);
+  const currentLevel = levels.find(l => l.levelId === 7);
   const progressPercentage = currentLevel ? (currentLevel.xp / currentLevel.maxXp) * 100 : 0;
 
   // Calculate total monthly revenue
@@ -108,7 +108,7 @@ export function Level5MarketStrategy() {
         threats: competitorThreats,
       },
     };
-    updateModuleData('level1', data);
+    updateModuleData('level7', data);
     
     // Update context SWOT
     updateEnhancedSWOT({
@@ -344,7 +344,7 @@ export function Level5MarketStrategy() {
         setSaveStatus('saved');
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
-          updateLevelProgress(1, currentLevel.maxXp, true);
+          updateLevelProgress(7, currentLevel.maxXp, true);
         }
 
         void (async () => {
@@ -381,8 +381,8 @@ export function Level5MarketStrategy() {
         })();
         
         // YieldX AI level feedback
-        getLevelAiFeedback(1, moduleData['level1'] || {}, language as 'ar' | 'en')
-          .then(fb => { setAiFeedback(fb); updateModuleData('level1', { aiFeedback: fb }); })
+        getLevelAiFeedback(7, moduleData['level7'] || {}, language as 'ar' | 'en')
+          .then(fb => { setAiFeedback(fb); updateModuleData('level7', { aiFeedback: fb }); })
           .catch(() => {})
           .finally(() => setIsLoadingAi(false));
         setIsLoadingAi(true);
@@ -423,7 +423,7 @@ export function Level5MarketStrategy() {
               <h1 className={`text-3xl font-bold mb-2 ${
                 isDark ? 'text-white' : 'text-pink-900'
               }`}>
-                {isRTL ? 'المستوى 1: السوق والاستراتيجية' : 'Level 1: Market & Strategy'}
+                {isRTL ? 'المستوى 7: السوق والاستراتيجية' : 'Level 7: Market & Strategy'}
               </h1>
               <p className={isDark ? 'text-pink-200' : 'text-pink-700'}>
                 {isRTL ? 'تحليل المنافسين وتحديد المنتجات وإجراء تحليل SWOT متطور' : 'Analyze competitors, define products, conduct advanced SWOT analysis'}
