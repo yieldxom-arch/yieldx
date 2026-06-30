@@ -917,7 +917,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 1,
-    title: 'تحليل السوق',
+    title: 'السوق والاستراتيجية',
     objective: 'تحليل المنافسين وتحديد المنتجات وإجراء تحليل SWOT متطور',
     deliverable: 'تحليل المنافسين + المنتجات + تحليل SWOT (حتى 9 نقاط لكل قسم)',
     submissionType: 'form',

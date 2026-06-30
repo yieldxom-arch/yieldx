@@ -230,6 +230,8 @@ export interface Translations {
     lockedCompleteMore: string;
     unlockHint: string;
     // Level objectives and deliverables
+    level0Objective: string;
+    level0Deliverable: string;
     level1Objective: string;
     level1Deliverable: string;
     level2Objective: string;
@@ -757,7 +759,7 @@ export const translations: Record<Language, Translations> = {
       level7: 'المستوى 7',
       level8: 'المستوى 8',
       level0Title: 'اختيار نوع المشروع',
-      level1Title: 'تحليل السوق',
+      level1Title: 'السوق والاستراتيجية',
       level2Title: 'المتطلبات القانونية والتراخيص',
       level3Title: 'المتطلبات التشغيلية',
       level4Title: 'إدارة الأصول',
@@ -856,8 +858,10 @@ export const translations: Record<Language, Translations> = {
       lockedCompleteMore: 'مقفل، اكمل المزيد من المستويات للوصول إليه',
       unlockHint: 'احصل على مشروع التخرج من خلال إكمال مستوياتك!',
       // Level objectives and deliverables
-      level1Objective: 'تعلم كيفية تحديد المساهمين وتوزيع الحصص بشكل قانوني',
-      level1Deliverable: 'نموذج معلومات المساهمين مكتمل مع توزيع الحصص',
+      level0Objective: 'تحديد نوع المشروع (زراعي، صناعي، تجاري، خدمي)',
+      level0Deliverable: 'اختيار نوع المشروع وفهم متطلباته',
+      level1Objective: 'تحليل المنافسين وتحديد المنتجات وإجراء تحليل SWOT متطور',
+      level1Deliverable: 'تحليل المنافسين + المنتجات + تحليل SWOT (حتى 9 نقاط لكل قسم)',
       level2Objective: 'تحليل المنافسين وتحديد الميزة التنافسية لمشروعك',
       level2Deliverable: 'تقرير تحليل المنافسين مع جدول مقارنة',
       level3Objective: 'حساب تكلفة الأصول والمعدات المطلوبة للمشروع',
@@ -1360,7 +1364,7 @@ export const translations: Record<Language, Translations> = {
       level7: 'Level 7',
       level8: 'Level 8',
       level0Title: 'Project Type Selection',
-      level1Title: 'Market Analysis',
+      level1Title: 'Market & Strategy',
       level2Title: 'Legal Requirements & Licenses',
       level3Title: 'Operational Requirements',
       level4Title: 'Asset Management',
@@ -1459,8 +1463,10 @@ export const translations: Record<Language, Translations> = {
       lockedCompleteMore: 'Locked, complete more levels to reach it',
       unlockHint: 'Unlock the capstone project by completing your levels!',
       // Level objectives and deliverables
-      level1Objective: 'Learn how to identify shareholders and distribute shares legally',
-      level1Deliverable: 'Completed shareholder information model with share distribution',
+      level0Objective: 'Choose the project type (agricultural, industrial, commercial, or service)',
+      level0Deliverable: 'Selected project type with an understanding of its requirements',
+      level1Objective: 'Analyze competitors, define products, and conduct an advanced SWOT analysis',
+      level1Deliverable: 'Competitor analysis + products + SWOT analysis (up to 9 points per section)',
       level2Objective: 'Analyze competitors and identify your project\'s competitive advantage',
       level2Deliverable: 'Competitor analysis report with comparison table',
       level3Objective: 'Calculate the cost of assets and required equipment for the project',
