@@ -264,6 +264,13 @@ export function CopilotBridge({ language, onMessageRead, onActionTaken }: Copilo
     }
   }, [showBridge, currentProjectKey]);
 
+  // Allow other parts of the app (e.g. the dashboard's "Your AI Tools" banner) to open the bridge
+  useEffect(() => {
+    const handleOpenRequest = () => setShowBridge(true);
+    window.addEventListener('yieldx:open-copilot-bridge', handleOpenRequest);
+    return () => window.removeEventListener('yieldx:open-copilot-bridge', handleOpenRequest);
+  }, []);
+
   const getCopilotIcon = (role: AICopilotRole) => {
     switch (role) {
       case 'CFO':

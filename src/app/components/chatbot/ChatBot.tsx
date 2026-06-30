@@ -187,6 +187,13 @@ export function ChatBot() {
     );
   }, [isAr]);
 
+  // Allow other parts of the app (e.g. the dashboard's "Your AI Tools" banner) to open the chatbot
+  useEffect(() => {
+    const handleOpenRequest = () => setIsOpen(true);
+    window.addEventListener('yieldx:open-chatbot', handleOpenRequest);
+    return () => window.removeEventListener('yieldx:open-chatbot', handleOpenRequest);
+  }, []);
+
   // Smart text normalization for better Arabic matching
   const normalizeArabicText = (text: string): string => {
     return text
