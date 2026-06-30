@@ -237,21 +237,6 @@ export function ProfessionalDashboard() {
                 </>
               )}
 
-              {/* 3D Project Visualization button */}
-              <Button
-                variant="outline"
-                onClick={() => setCurrentView('project-3d-view')}
-                className="bg-[#7FDBCA]/10 border-[#7FDBCA]/40 hover:bg-[#7FDBCA]/20 hover:border-[#7FDBCA]/60 text-[#7FDBCA]"
-              >
-                {/* Custom 3D cube icon */}
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2l9 5v10l-9 5-9-5V7z" />
-                  <polyline points="3 7 12 12 21 7" />
-                  <line x1="12" y1="12" x2="12" y2="22" />
-                </svg>
-                {language === 'ar' ? 'عرض ثلاثي الأبعاد' : '3D View'}
-              </Button>
-
               <Button
                 variant="outline"
                 onClick={() => setCurrentView('workspaces')}
