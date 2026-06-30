@@ -7,8 +7,9 @@ import { Card } from '@/app/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
 
 export function NotificationsCenter() {
-  const { notifications, markNotificationRead, clearAllNotifications, unreadCount, language } = useYieldX();
+  const { notifications, markNotificationRead, clearAllNotifications, unreadCount, language, theme } = useYieldX();
   const [isOpen, setIsOpen] = useState(false);
+  const isDark = theme === 'dark';
 
   // Translations
   const t = {
@@ -75,7 +76,9 @@ export function NotificationsCenter() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="relative bg-white/10 border-white/20 hover:bg-white/20 text-white"
+          className={isDark
+            ? 'relative bg-white/10 border-white/20 hover:bg-white/20 text-white'
+            : 'relative bg-slate-900/5 border-slate-900/10 hover:bg-slate-900/10 text-slate-700'}
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -90,13 +93,13 @@ export function NotificationsCenter() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent 
-        className="bg-[#1B1B3A] border-[#4ECDC4]/50 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+      <DialogContent
+        className={`border-[#4ECDC4]/50 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col ${isDark ? 'bg-[#1B1B3A]' : 'bg-white'}`}
         aria-describedby={undefined}
       >
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-white text-2xl flex items-center gap-2">
+            <DialogTitle className={`text-2xl flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               <Bell className="w-6 h-6 text-[#4ECDC4]" />
               {t.notifications}
               {unreadCount > 0 && (
@@ -127,9 +130,9 @@ export function NotificationsCenter() {
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-12"
               >
-                <Bell className="w-16 h-16 text-gray-600 mb-4" />
-                <p className="text-gray-400 text-lg">{t.noNotifications}</p>
-                <p className="text-gray-500 text-sm mt-2">{t.noNotificationsDesc}</p>
+                <Bell className={`w-16 h-16 mb-4 ${isDark ? 'text-gray-600' : 'text-slate-300'}`} />
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{t.noNotifications}</p>
+                <p className={`text-sm mt-2 ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>{t.noNotificationsDesc}</p>
               </motion.div>
             ) : (
               notifications
@@ -146,28 +149,30 @@ export function NotificationsCenter() {
                     <Card
                       className={`p-4 cursor-pointer transition-all ${
                         notification.read
-                          ? 'bg-[#0F0F25]/50 border-gray-700 opacity-70'
+                          ? isDark
+                            ? 'bg-[#0F0F25]/50 border-gray-700 opacity-70'
+                            : 'bg-slate-900/5 border-slate-200 opacity-70'
                           : 'bg-gradient-to-r from-[#4ECDC4]/10 to-[#7FDBCA]/10 border-[#4ECDC4]/30 shadow-lg shadow-[#4ECDC4]/10'
                       } hover:border-[#4ECDC4]/50`}
                       onClick={() => !notification.read && markNotificationRead(notification.id)}
                     >
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-white font-semibold text-sm">
+                            <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
                               {language === 'ar' ? notification.titleAr : notification.titleEn}
                             </h4>
                             {!notification.read && (
                               <span className="flex-shrink-0 w-2 h-2 bg-[#4ECDC4] rounded-full mt-1.5"></span>
                             )}
                           </div>
-                          <p className="text-gray-300 text-sm mt-1">
+                          <p className={`text-sm mt-1 ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
                             {language === 'ar' ? notification.messageAr : notification.messageEn}
                           </p>
                           <div className="flex items-center justify-between mt-2">
-                            <p className="text-[#7FDBCA] text-xs">{formatTimestamp(notification.timestamp)}</p>
+                            <p className="text-[#0d9488] dark:text-[#7FDBCA] text-xs">{formatTimestamp(notification.timestamp)}</p>
                             {!notification.read && (
                               <Button
                                 variant="ghost"

@@ -8,8 +8,9 @@ import { Badge } from '@/app/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
 
 export function StudentAnnouncementsViewer() {
-  const { announcements, markAnnouncementRead, user, language } = useYieldX();
+  const { announcements, markAnnouncementRead, user, language, theme } = useYieldX();
   const [isOpen, setIsOpen] = useState(false);
+  const isDark = theme === 'dark';
 
   // Filter announcements visible to this student
   const visibleAnnouncements = announcements.filter((announcement) => {
@@ -91,7 +92,9 @@ export function StudentAnnouncementsViewer() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="relative bg-white/10 border-white/20 hover:bg-white/20 text-white"
+          className={isDark
+            ? 'relative bg-white/10 border-white/20 hover:bg-white/20 text-white'
+            : 'relative bg-slate-900/5 border-slate-900/10 hover:bg-slate-900/10 text-slate-700'}
         >
           <Megaphone className="w-4 h-4" />
           {unreadCount > 0 && (
