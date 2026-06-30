@@ -384,8 +384,8 @@ export function SettingsModal() {
           {t.settings.title}
         </Button>
       </DialogTrigger>
-      <DialogContent 
-        className={`bg-white dark:bg-slate-900 border-purple-500/30 dark:border-purple-500/50 ${showSubscriptionPlans ? 'max-w-7xl' : 'max-w-3xl'} max-h-[90vh] overflow-y-auto transition-all`}
+      <DialogContent
+        className={`bg-white dark:bg-slate-900 border-purple-500/30 dark:border-purple-500/50 ${showSubscriptionPlans ? 'sm:max-w-7xl' : 'sm:max-w-3xl'} max-h-[90vh] overflow-y-auto transition-all`}
         aria-describedby={undefined}
       >
         {!showSubscriptionPlans ? (
