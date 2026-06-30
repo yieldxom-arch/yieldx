@@ -8,34 +8,45 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 const tutorialSteps = [
   {
     title: 'مرحباً في YieldX! 🚀',
+    titleEn: 'Welcome to YieldX! 🚀',
     description: 'منصتك الشاملة لإعداد دراسات الجدوى التفصيلية بطريقة تفاعلية وممتعة',
+    descriptionEn: 'Your all-in-one platform for building detailed feasibility studies in an interactive, engaging way',
     icon: '🎯',
   },
   {
     title: 'رحلة من 8 مستويات (0-7)',
+    titleEn: 'An 8-Level Journey (0–7)',
     description: 'أكمل 8 مستويات وفق معايير الجدوى العُمانية: من اختيار نوع المشروع وحتى نموذج الأعمال الشامل ورؤية 2040',
+    descriptionEn: 'Complete 8 levels aligned with Omani feasibility study standards — from choosing your project type to a full business model and Oman Vision 2040 alignment',
     icon: '🗺️',
   },
   {
     title: 'اكسب النقاط والإنجازات',
+    titleEn: 'Earn Points & Achievements',
     description: 'احصل على نقاط XP مقابل كل قسم تكمله. كلما تقدمت، تفتح مستويات جديدة',
+    descriptionEn: 'Earn XP for every section you complete. As you progress, new levels unlock',
     icon: '⭐',
   },
   {
     title: 'احفظ وتابع لاحقاً',
+    titleEn: 'Save & Continue Anytime',
     description: 'بياناتك محفوظة تلقائياً. يمكنك العودة في أي وقت لإكمال رحلتك',
+    descriptionEn: 'Your data is saved automatically. Come back anytime to continue your journey',
     icon: '💾',
   },
   {
     title: 'احصل على تقريرك الشامل',
+    titleEn: 'Get Your Complete Report',
     description: 'عند الانتهاء، احصل على تقرير PDF احترافي كامل بدراسة الجدوى لمشروعك',
+    descriptionEn: "When you're done, get a complete, professional PDF report of your project's feasibility study",
     icon: '📄',
   },
 ];
 
 export function WelcomeTutorial() {
-  const { theme } = useYieldX();
+  const { theme, language } = useYieldX();
   const isDark = theme === 'dark';
+  const isAr = language === 'ar';
   const [showTutorial, setShowTutorial] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -147,10 +158,10 @@ export function WelcomeTutorial() {
                   >
                     <div className="text-6xl mb-4">{tutorialSteps[currentStep].icon}</div>
                     <h2 className={`text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      {tutorialSteps[currentStep].title}
+                      {isAr ? tutorialSteps[currentStep].title : tutorialSteps[currentStep].titleEn}
                     </h2>
                     <p className={`text-lg leading-relaxed ${isDark ? 'text-purple-200' : 'text-purple-700'}`}>
-                      {tutorialSteps[currentStep].description}
+                      {isAr ? tutorialSteps[currentStep].description : tutorialSteps[currentStep].descriptionEn}
                     </p>
                   </motion.div>
                 </AnimatePresence>
@@ -176,7 +187,7 @@ export function WelcomeTutorial() {
                     onClick={handleSkip}
                     className={isDark ? 'text-purple-300 hover:text-white' : 'text-purple-600 hover:text-slate-900'}
                   >
-                    تخطي
+                    {isAr ? 'تخطي' : 'Skip'}
                   </Button>
 
                   <div className="flex gap-2">
@@ -189,7 +200,7 @@ export function WelcomeTutorial() {
                           : 'bg-slate-900/5 border-slate-900/10 hover:bg-slate-900/10 text-slate-900'}
                       >
                         <ChevronLeft className="w-4 h-4 mr-1" />
-                        السابق
+                        {isAr ? 'السابق' : 'Previous'}
                       </Button>
                     )}
 
@@ -197,7 +208,7 @@ export function WelcomeTutorial() {
                       onClick={handleNext}
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     >
-                      {currentStep === tutorialSteps.length - 1 ? 'ابدأ الآن' : 'التالي'}
+                      {currentStep === tutorialSteps.length - 1 ? (isAr ? 'ابدأ الآن' : 'Start Now') : (isAr ? 'التالي' : 'Next')}
                       <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
                   </div>
