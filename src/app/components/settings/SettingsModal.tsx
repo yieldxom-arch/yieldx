@@ -198,28 +198,31 @@ export function SettingsModal() {
     });
 
     if (!isNameValid) {
-      toast.error('⚠️ الاسم يجب أن يكون بين 2 و 50 حرف');
+      toast.error(language === 'ar' ? '⚠️ الاسم يجب أن يكون بين 2 و 50 حرف' : '⚠️ Name must be between 2 and 50 characters');
       return;
     }
 
     if (!isEmailValid) {
-      toast.error('⚠️ البريد الإلكتروني غير صحيح');
+      toast.error(language === 'ar' ? '⚠️ البريد الإلكتروني غير صحيح' : '⚠️ Invalid email address');
       return;
     }
 
     if (!isPhoneValid) {
-      toast.error('⚠️ رقم الهاتف غير صحيح');
+      toast.error(language === 'ar' ? '⚠️ رقم الهاتف غير صحيح' : '⚠️ Invalid phone number');
       return;
     }
 
     if (!editedData.name.trim() || !editedData.email.trim()) {
-      toast.error('⚠️ الاسم والبريد الإلكتروني مطلوبان');
+      toast.error(language === 'ar' ? '⚠️ الاسم والبريد الإلكتروني مطلوبان' : '⚠️ Name and email are required');
       return;
     }
 
     // Check if email changed - show warning
     if (editedData.email !== user?.email) {
-      if (!confirm('⚠️ تغيير البريد الإلكتروني قد يؤثر على تسجيل الدخول. هل أنت متأكد؟')) {
+      const confirmMsg = language === 'ar'
+        ? '⚠️ تغيير البريد الإلكتروني قد يؤثر على تسجيل الدخول. هل أنت متأكد؟'
+        : '⚠️ Changing your email may affect your login. Are you sure?';
+      if (!confirm(confirmMsg)) {
         return;
       }
     }
@@ -250,15 +253,15 @@ export function SettingsModal() {
       setEditMode(false);
       setBackupData(editedData);
       
-      toast.success('✅ تم حفظ المعلومات بنجاح!', {
-        description: 'تم تحديث ملفك الشخصي',
+      toast.success(language === 'ar' ? '✅ تم حفظ المعلومات بنجاح!' : '✅ Information saved successfully!', {
+        description: language === 'ar' ? 'تم تحديث ملفك الشخصي' : 'Your profile has been updated',
       });
     }, 800);
   };
 
   const handleUndo = () => {
     setEditedData(backupData);
-    toast.info('↩️ تم التراجع عن التغييرات');
+    toast.info(language === 'ar' ? '↩️ تم التراجع عن التغييرات' : '↩️ Changes have been undone');
   };
 
   const handleMotionToggle = (checked: boolean) => {
@@ -298,11 +301,14 @@ export function SettingsModal() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('✅ تم تصدير البيانات بنجاح');
+    toast.success(language === 'ar' ? '✅ تم تصدير البيانات بنجاح' : '✅ Data exported successfully');
   };
 
   const handleClearData = () => {
-    if (confirm('هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.')) {
+    const confirmMsg = language === 'ar'
+      ? 'هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.'
+      : 'Are you sure you want to delete all data? This action cannot be undone.';
+    if (confirm(confirmMsg)) {
       localStorage.clear();
       window.location.reload();
     }
@@ -315,7 +321,7 @@ export function SettingsModal() {
       reader.onloadend = () => {
         setProfilePic(reader.result as string);
         localStorage.setItem('yieldx_profile_pic', reader.result as string);
-        toast.success('✅ تم تحديث الصورة الشخصية بنجاح');
+        toast.success(language === 'ar' ? '✅ تم تحديث الصورة الشخصية بنجاح' : '✅ Profile picture updated successfully');
       };
       reader.readAsDataURL(file);
     }
@@ -334,13 +340,16 @@ export function SettingsModal() {
 
   const handleThemeChange = (value: string) => {
     setContextTheme(value as 'light' | 'dark');
-    toast.success(value === 'dark' ? 'تم التبديل إلى المظهر الداكن' : 'تم التبديل إلى المظهر الفاتح');
+    const isDarkNow = value === 'dark';
+    toast.success(language === 'ar'
+      ? (isDarkNow ? 'تم التبديل إلى المظهر الداكن' : 'تم التبديل إلى المظهر الفاتح')
+      : (isDarkNow ? 'Switched to dark mode' : 'Switched to light mode'));
   };
 
   const handleCurrencyChange = (value: string) => {
     setCurrency(value);
     localStorage.setItem('yieldx_currency', value);
-    toast.success('تم تحديث العملة بنجاح');
+    toast.success(language === 'ar' ? 'تم تحديث العملة بنجاح' : 'Currency updated successfully');
   };
 
   const handleApiKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -352,13 +361,13 @@ export function SettingsModal() {
 
   const handleApiKeyTest = async () => {
     if (!apiKey || !apiKey.trim()) {
-      toast.error('الرجاء إدخال مفتاح API أولاً');
+      toast.error(language === 'ar' ? 'الرجاء إدخال مفتاح API أولاً' : 'Please enter an API key first');
       return;
     }
 
     if (!apiKey.startsWith('sk-') && !apiKey.startsWith('sk_')) {
       setApiKeyStatus('invalid');
-      toast.error('مفتاح API غير صحيح. يجب أن يبدأ بـ "sk-" أو "sk_"');
+      toast.error(language === 'ar' ? 'مفتاح API غير صحيح. يجب أن يبدأ بـ "sk-" أو "sk_"' : 'Invalid API key. It must start with "sk-" or "sk_"');
       return;
     }
 
@@ -379,24 +388,24 @@ export function SettingsModal() {
       
       if (response.ok) {
         setApiKeyStatus('valid');
-        toast.success('✅ مفتاح API صحيح ويعمل بشكل جيد!');
+        toast.success(language === 'ar' ? '✅ مفتاح API صحيح ويعمل بشكل جيد!' : '✅ API key is valid and working!');
       } else {
         const errorData = await response.json().catch(() => ({}));
         setApiKeyStatus('invalid');
-        
+
         if (response.status === 401) {
-          toast.error('❌ مفتاح API غير صحيح أو منتهي الصلاحية');
+          toast.error(language === 'ar' ? '❌ مفتاح API غير صحيح أو منتهي الصلاحية' : '❌ API key is invalid or expired');
         } else if (response.status === 429) {
-          toast.error('⚠️ تم تجاوز الحد المسموح. حاول مرة أخرى لاحقاً');
+          toast.error(language === 'ar' ? '⚠️ تم تجاوز الحد المسموح. حاول مرة أخرى لاحقاً' : '⚠️ Rate limit exceeded. Please try again later');
         } else if (response.status === 403) {
-          toast.error('❌ المفتاح ليس لديه صلاحيات كافية');
+          toast.error(language === 'ar' ? '❌ المفتاح ليس لديه صلاحيات كافية' : '❌ This key does not have sufficient permissions');
         } else {
-          toast.error(`❌ خطأ: ${errorData.error?.message || response.statusText}`);
+          toast.error(language === 'ar' ? `❌ خطأ: ${errorData.error?.message || response.statusText}` : `❌ Error: ${errorData.error?.message || response.statusText}`);
         }
       }
     } catch (error) {
       setApiKeyStatus('invalid');
-      toast.error('❌ فشل الاتصال. تحقق من الاتصال بالإنترنت');
+      toast.error(language === 'ar' ? '❌ فشل الاتصال. تحقق من الاتصال بالإنترنت' : '❌ Connection failed. Check your internet connection');
     }
   };
 
@@ -588,7 +597,7 @@ export function SettingsModal() {
                       )}
                       {user?.studentId && (
                         <p className="text-slate-600 dark:text-purple-300 text-sm flex items-center gap-1">
-                          🎓 رقم الطالب: {user.studentId}
+                          🎓 {language === 'ar' ? 'رقم الطالب' : 'Student ID'}: {user.studentId}
                         </p>
                       )}
                       {user?.organization && (
@@ -634,12 +643,12 @@ export function SettingsModal() {
                     <div>
                       <label className="text-slate-900 dark:text-white text-sm font-medium block mb-1 text-right flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        الاسم الكامل *
+                        {language === 'ar' ? 'الاسم الكامل *' : 'Full Name *'}
                       </label>
                       <Input
                         value={editedData.name}
                         onChange={(e) => handleFieldChange('name', e.target.value)}
-                        placeholder="اسمك الكامل"
+                        placeholder={language === 'ar' ? 'اسمك الكامل' : 'Your full name'}
                         maxLength={50}
                         className={`bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-right ${
                           !validations.name ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-purple-500/30'
@@ -647,7 +656,7 @@ export function SettingsModal() {
                       />
                       <div className="flex justify-between items-center mt-1">
                         {!validations.name && (
-                          <span className="text-xs text-red-600 dark:text-red-400">⚠️ 2-50 حرف</span>
+                          <span className="text-xs text-red-600 dark:text-red-400">{language === 'ar' ? '⚠️ 2-50 حرف' : '⚠️ 2-50 characters'}</span>
                         )}
                         <span className="text-xs text-slate-500 dark:text-slate-400 mr-auto">
                           {editedData.name.length}/50
@@ -658,12 +667,12 @@ export function SettingsModal() {
                     <div>
                       <label className="text-slate-900 dark:text-white text-sm font-medium block mb-1 text-right flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        الاسم المعروض (اختياري)
+                        {language === 'ar' ? 'الاسم المعروض (اختياري)' : 'Display Name (optional)'}
                       </label>
                       <Input
                         value={editedData.displayName}
                         onChange={(e) => handleFieldChange('displayName', e.target.value)}
-                        placeholder="اسم مستعار أو لقب"
+                        placeholder={language === 'ar' ? 'اسم مستعار أو لقب' : 'A nickname or alias'}
                         maxLength={30}
                         className="bg-white dark:bg-slate-800 border-slate-300 dark:border-purple-500/30 text-slate-900 dark:text-white text-right"
                       />
@@ -676,7 +685,7 @@ export function SettingsModal() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-slate-900 dark:text-white text-sm font-medium block mb-1 text-right flex items-center gap-1">
-                        📧 البريد الإلكتروني *
+                        📧 {language === 'ar' ? 'البريد الإلكتروني *' : 'Email *'}
                       </label>
                       <Input
                         value={editedData.email}
@@ -690,12 +699,12 @@ export function SettingsModal() {
                       />
                       {!validations.email && (
                         <span className="text-xs text-red-600 dark:text-red-400 block text-right mt-1">
-                          ⚠️ بريد إلكتروني غير صحيح
+                          {language === 'ar' ? '⚠️ بريد إلكتروني غير صحيح' : '⚠️ Invalid email address'}
                         </span>
                       )}
                       {editedData.email !== user?.email && validations.email && (
                         <span className="text-xs text-orange-600 dark:text-orange-400 block text-right mt-1">
-                          ⚠️ سيتم تغيير بيانات تسجيل الدخول
+                          {language === 'ar' ? '⚠️ سيتم تغيير بيانات تسجيل الدخول' : '⚠️ Your login credentials will be changed'}
                         </span>
                       )}
                     </div>
@@ -853,12 +862,12 @@ export function SettingsModal() {
                   <div>
                     <label className="text-slate-900 dark:text-white text-sm font-medium block mb-1 text-right flex items-center gap-1">
                       <GraduationCap className="w-4 h-4" />
-                      التخصص/المجال
+                      {language === 'ar' ? 'التخصص/المجال' : 'Major/Field'}
                     </label>
                     <Input
                       value={editedData.major}
                       onChange={(e) => handleFieldChange('major', e.target.value)}
-                      placeholder="إدارة الأعمال"
+                      placeholder={language === 'ar' ? 'إدارة الأعمال' : 'Business Administration'}
                       className="bg-white dark:bg-slate-800 border-slate-300 dark:border-purple-500/30 text-slate-900 dark:text-white text-right"
                     />
                   </div>
@@ -867,12 +876,12 @@ export function SettingsModal() {
                   <div>
                     <label className="text-slate-900 dark:text-white text-sm font-medium block mb-1 text-right flex items-center gap-1">
                       <FileText className="w-4 h-4" />
-                      نبذة عنك
+                      {language === 'ar' ? 'نبذة عنك' : 'About You'}
                     </label>
                     <Textarea
                       value={editedData.bio}
                       onChange={(e) => handleFieldChange('bio', e.target.value)}
-                      placeholder="اكتب نبذة مختصرة عنك وعن اهتماماتك..."
+                      placeholder={language === 'ar' ? 'اكتب نبذة مختصرة عنك وعن اهتماماتك...' : 'Write a short bio about yourself and your interests...'}
                       maxLength={150}
                       rows={3}
                       className="bg-white dark:bg-slate-800 border-slate-300 dark:border-purple-500/30 text-slate-900 dark:text-white text-right resize-none"
@@ -886,7 +895,7 @@ export function SettingsModal() {
                   <Separator className="bg-slate-200 dark:bg-white/10" />
                   <div>
                     <h4 className="text-slate-900 dark:text-white font-semibold mb-3 text-right">
-                      روابط التواصل الاجتماعي (اختياري)
+                      {language === 'ar' ? 'روابط التواصل الاجتماعي (اختياري)' : 'Social Links (optional)'}
                     </h4>
                     <div className="space-y-3">
                       <div>
@@ -937,9 +946,11 @@ export function SettingsModal() {
                     <div className="flex items-center gap-2">
                       <Lock className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                       <div>
-                        <p className="text-slate-900 dark:text-white text-sm font-medium">خصوصية الملف الشخصي</p>
+                        <p className="text-slate-900 dark:text-white text-sm font-medium">{language === 'ar' ? 'خصوصية الملف الشخصي' : 'Profile Privacy'}</p>
                         <p className="text-slate-600 dark:text-slate-400 text-xs">
-                          {profileVisibility === 'public' ? 'مرئي للجميع' : 'مرئي لك فقط'}
+                          {language === 'ar'
+                            ? (profileVisibility === 'public' ? 'مرئي للجميع' : 'مرئي لك فقط')
+                            : (profileVisibility === 'public' ? 'Visible to everyone' : 'Visible to you only')}
                         </p>
                       </div>
                     </div>
@@ -959,12 +970,12 @@ export function SettingsModal() {
                       {isSaving ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          جاري الحفظ...
+                          {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
                         </>
                       ) : (
                         <>
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          حفظ (Ctrl+S)
+                          {language === 'ar' ? 'حفظ (Ctrl+S)' : 'Save (Ctrl+S)'}
                         </>
                       )}
                     </Button>
@@ -974,7 +985,7 @@ export function SettingsModal() {
                       className="bg-yellow-100 dark:bg-yellow-500/20 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 border-yellow-300 dark:border-yellow-500/50 text-yellow-900 dark:text-yellow-100"
                     >
                       <Undo2 className="w-4 h-4 mr-2" />
-                      تراجع
+                      {language === 'ar' ? 'تراجع' : 'Undo'}
                     </Button>
                     <Button
                       onClick={() => {
@@ -985,7 +996,7 @@ export function SettingsModal() {
                       className="bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white"
                     >
                       <XCircle className="w-4 h-4 mr-2" />
-                      إلغاء (Esc)
+                      {language === 'ar' ? 'إلغاء (Esc)' : 'Cancel (Esc)'}
                     </Button>
                   </div>
                 </motion.div>
@@ -1002,7 +1013,7 @@ export function SettingsModal() {
                     variant="outline"
                   >
                     <Edit2 className="w-4 h-4 mr-2" />
-                    تعديل المعلومات الشخصية
+                    {language === 'ar' ? 'تعديل المعلومات الشخصية' : 'Edit Personal Information'}
                   </Button>
                   {user?.bio && (
                     <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
@@ -1226,34 +1237,34 @@ export function SettingsModal() {
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-purple-500/50">
                     <SelectItem value="SAR" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      ريال سعودي (SAR)
+                      {language === 'ar' ? 'ريال سعودي (SAR)' : 'Saudi Riyal (SAR)'}
                     </SelectItem>
                     <SelectItem value="USD" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      دولار أمريكي (USD)
+                      {language === 'ar' ? 'دولار أمريكي (USD)' : 'US Dollar (USD)'}
                     </SelectItem>
                     <SelectItem value="EUR" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      يورو (EUR)
+                      {language === 'ar' ? 'يورو (EUR)' : 'Euro (EUR)'}
                     </SelectItem>
                     <SelectItem value="GBP" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      جنيه إسترليني (GBP)
+                      {language === 'ar' ? 'جنيه إسترليني (GBP)' : 'British Pound (GBP)'}
                     </SelectItem>
                     <SelectItem value="AED" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      درهم إماراتي (AED)
+                      {language === 'ar' ? 'درهم إماراتي (AED)' : 'UAE Dirham (AED)'}
                     </SelectItem>
                     <SelectItem value="EGP" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      جنيه مصري (EGP)
+                      {language === 'ar' ? 'جنيه مصري (EGP)' : 'Egyptian Pound (EGP)'}
                     </SelectItem>
                     <SelectItem value="KWD" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      دينار كويتي (KWD)
+                      {language === 'ar' ? 'دينار كويتي (KWD)' : 'Kuwaiti Dinar (KWD)'}
                     </SelectItem>
                     <SelectItem value="BHD" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      دينار بحريني (BHD)
+                      {language === 'ar' ? 'دينار بحريني (BHD)' : 'Bahraini Dinar (BHD)'}
                     </SelectItem>
                     <SelectItem value="OMR" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      ريال عماني (OMR)
+                      {language === 'ar' ? 'ريال عماني (OMR)' : 'Omani Rial (OMR)'}
                     </SelectItem>
                     <SelectItem value="QAR" className="text-slate-900 dark:text-white hover:bg-purple-100 dark:hover:bg-purple-500/20">
-                      ريال قطري (QAR)
+                      {language === 'ar' ? 'ريال قطري (QAR)' : 'Qatari Riyal (QAR)'}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -1265,14 +1276,14 @@ export function SettingsModal() {
           <Card className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 p-4">
             <h3 className="text-slate-900 dark:text-white font-semibold mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              إعدادات إمكانية الوصول
+              {language === 'ar' ? 'إعدادات إمكانية الوصول' : 'Accessibility Settings'}
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-900 dark:text-white text-sm">تقليل الحركة</p>
+                  <p className="text-slate-900 dark:text-white text-sm">{language === 'ar' ? 'تقليل الحركة' : 'Reduce Motion'}</p>
                   <p className="text-slate-600 dark:text-purple-300 text-xs">
-                    إيقاف الرسوم المتحركة والانتقالات
+                    {language === 'ar' ? 'إيقاف الرسوم المتحركة والانتقالات' : 'Disable animations and transitions'}
                   </p>
                 </div>
                 <Switch checked={motionReduced} onCheckedChange={handleMotionToggle} />
