@@ -4,17 +4,17 @@ import { logger } from "npm:hono/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Supabase Edge Function: YieldX Chat / Claude AI Assistant
-// ────────────────────────────────────────────────────────────────────────────
+// Supabase Edge Function: YieldX Chat / Gemini AI Assistant
+// ─────────────────────────────────────────────────────────────────────────────
 // This function:
 // 1. Validates user authentication via Supabase JWT
 // 2. Checks user's subscription tier (free users are rejected)
-// 3. Calls Anthropic's Claude API with the user's message
+// 3. Calls Google Gemini API with the user's message
 // 4. Returns the assistant's response
-// 5. DOES NOT expose the Anthropic API key to the browser
+// 5. DOES NOT expose the Gemini API key to the browser
 //
-// Deploy: supabase functions deploy chat
-// Set secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+// Deploy: supabase functions deploy chat --no-verify-jwt
+// Set secret: supabase secrets set GEMINI_API_KEY=AIza...
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ChatRequestBody {
@@ -97,7 +97,7 @@ Do:
 - Be encouraging and supportive — these are students, many feeling lost.
 
 Do not:
-- Give specific legal, financial, or tax advice — always say "verify with a licensed advisor or official source." 
+- Give specific legal, financial, or tax advice — always say "verify with a licensed advisor or official source."
 - Make up specific numbers (fees, exact regulations, prices). If unsure, say so and suggest the user check Invest Oman or MOCIIP directly.
 - Pretend to know real-time information (current exchange rates, today's news, etc.).
 
@@ -106,24 +106,6 @@ Tone: Warm, encouraging, concise. Default to short answers (2–4 sentences) unl
 Personalization: ${personalizedGreeting} ${roleGuidance}
 
 When you cannot answer or are unsure, be honest and suggest the user verify with official sources.`;
-}
-
-// ─── Helper: Extract text from Anthropic message ───────────────────────────
-function extractTextFromMessage(message: any): string {
-  if (!message || !message.content) return "";
-  const contentBlocks = Array.isArray(message.content)
-    ? message.content
-    : [message.content];
-  return contentBlocks
-    .map((block: any) => {
-      if (!block) return "";
-      if (typeof block === "string") return block;
-      if (typeof block.text === "string") return block.text;
-      if (typeof block.content === "string") return block.content;
-      return "";
-    })
-    .join("")
-    .trim();
 }
 
 // ─── Helper: Verify JWT and get user ─────────────────────────────────────
@@ -144,10 +126,8 @@ async function verifyAuthToken(
   }
 
   try {
-    // Create admin client to verify JWT
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify the token
     const {
       data: { user },
       error,
@@ -181,7 +161,6 @@ async function checkUserSubscription(userId: string): Promise<string | null> {
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Query users table for subscription_tier
     const { data, error } = await supabase
       .from("users")
       .select("subscription_tier")
@@ -200,7 +179,7 @@ async function checkUserSubscription(userId: string): Promise<string | null> {
   }
 }
 
-// ─── POST /chat – Main endpoint ────────────────────────────────────────────
+// ─── POST / – Main endpoint ───────────────────────────────────────────────
 app.post("/", async (c) => {
   try {
     // ─ Step 1: Validate authentication ─
@@ -239,10 +218,10 @@ app.post("/", async (c) => {
       );
     }
 
-    // ─ Step 4: Get Anthropic API key ─
-    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicApiKey) {
-      console.error("ANTHROPIC_API_KEY not set in edge function secrets");
+    // ─ Step 4: Get Gemini API key ─
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      console.error("GEMINI_API_KEY not set in edge function secrets");
       return c.json(
         {
           error:
@@ -252,38 +231,39 @@ app.post("/", async (c) => {
       );
     }
 
-    // ─ Step 5: Build messages for Claude ─
-    const messages = history.map((item) => ({
-      role: item.role,
-      content: item.content,
-    }));
-    messages.push({ role: "user", content: userMessage });
+    // ─ Step 5: Build Gemini contents from conversation history ─
+    // Gemini uses role "model" instead of "assistant", and requires alternating turns.
+    const contents = [
+      ...history.map((item) => ({
+        role: item.role === "assistant" ? "model" : "user",
+        parts: [{ text: item.content }],
+      })),
+      { role: "user", parts: [{ text: userMessage }] },
+    ];
 
-    // ─ Step 6: Call Anthropic API ─
+    // ─ Step 6: Call Gemini API ─
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-    let response: Response;
+    let geminiResponse: Response;
     try {
-      response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1024,
-          system: systemPromptBase({
-            userName,
-            userRole,
-            language,
+      geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemPromptBase({ userName, userRole, language }) }],
+            },
+            contents,
+            generationConfig: {
+              maxOutputTokens: 1024,
+            },
           }),
-          messages,
-        }),
-        signal: controller.signal,
-      });
+          signal: controller.signal,
+        }
+      );
       clearTimeout(timeoutId);
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -301,16 +281,16 @@ app.post("/", async (c) => {
       throw err;
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
       console.error(
-        "Anthropic API error:",
-        response.status,
-        response.statusText,
+        "Gemini API error:",
+        geminiResponse.status,
+        geminiResponse.statusText,
         errorText
       );
 
-      if (response.status === 429) {
+      if (geminiResponse.status === 429) {
         return c.json(
           {
             error:
@@ -331,8 +311,9 @@ app.post("/", async (c) => {
       );
     }
 
-    const data = await response.json();
-    const text = extractTextFromMessage(data);
+    const geminiData = await geminiResponse.json();
+    const text: string =
+      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
     if (!text) {
       const fallback =
