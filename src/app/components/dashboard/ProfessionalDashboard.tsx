@@ -273,21 +273,21 @@ export function ProfessionalDashboard() {
                       {language === 'ar' ? 'QR للطلاب' : 'Student QR'}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-[#1B1B3A] border-[#4ECDC4]/50">
+                  <DialogContent className="bg-white dark:bg-[#1B1B3A] border-violet-200 dark:border-[#4ECDC4]/50">
                     <DialogHeader>
-                      <DialogTitle className="text-white">{language === 'ar' ? 'رمز QR للطلاب' : 'Student QR Code'}</DialogTitle>
-                      <DialogDescription className="text-sm text-gray-400">
+                      <DialogTitle className="text-slate-900 dark:text-white">{language === 'ar' ? 'رمز QR للطلاب' : 'Student QR Code'}</DialogTitle>
+                      <DialogDescription className="text-sm text-slate-500 dark:text-gray-400">
                         {language === 'ar' ? 'يمكنك استخدام هذا الرمز للطلاب للدخول إلى النظام.' : 'Students can use this code to access the system.'}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col items-center gap-4 p-6">
                       {qrCodeValue && (
                         <>
-                          <div className="bg-white p-4 rounded-lg">
+                          <div className="bg-white p-4 rounded-lg border border-slate-200">
                             <QRCodeSVG value={qrCodeValue} size={200} />
                           </div>
-                          <p className="text-white text-center font-mono text-lg">{qrCodeValue}</p>
-                          <p className="text-[#7FDBCA] text-sm text-center">
+                          <p className="text-slate-900 dark:text-white text-center font-mono text-lg">{qrCodeValue}</p>
+                          <p className="text-[#0d9488] dark:text-[#7FDBCA] text-sm text-center">
                             {language === 'ar' ? 'يمكن للطلاب مسح هذا الرمز أو إدخال الكود للدخول' : 'Students can scan this code or enter it to log in'}
                           </p>
                         </>
@@ -308,10 +308,10 @@ export function ProfessionalDashboard() {
                       {t.reports.completionReport}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-white border-violet-200 max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="bg-white dark:bg-[#1B1B3A] border-violet-200 dark:border-violet-500/30 max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle className="text-slate-900 text-2xl font-bold">{t.reports.completionReport}</DialogTitle>
-                      <DialogDescription className="text-sm text-slate-900">
+                      <DialogTitle className="text-slate-900 dark:text-white text-2xl font-bold">{t.reports.completionReport}</DialogTitle>
+                      <DialogDescription className="text-sm text-slate-600 dark:text-slate-300">
                         {language === 'ar' ? 'عرض تفصيلي لإنجازاتك ونقاطك' : 'Detailed view of your achievements and points'}
                       </DialogDescription>
                     </DialogHeader>
@@ -731,14 +731,14 @@ export function ProfessionalDashboard() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-black font-bold text-base">
+                  <h3 className="text-slate-900 dark:text-white font-bold text-base">
                     {language === 'ar' ? 'موارد وشركاء الأعمال' : 'Business Resources & Partners'}
                   </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 border border-indigo-500/25 font-medium whitespace-nowrap">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 font-medium whitespace-nowrap">
                     {language === 'ar' ? 'جديد' : 'New'}
                   </span>
                 </div>
-                <p className="text-black/60 text-sm leading-relaxed">
+                <p className="text-slate-600 dark:text-white/60 text-sm leading-relaxed">
                   {language === 'ar'
                     ? 'موردون، خبراء، وشركاء لمساعدتك على إطلاق مشروعك بناءً على دراسة جدواك'
                     : 'Suppliers, experts, and partners to help you launch — matched to your feasibility study'}
