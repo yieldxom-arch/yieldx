@@ -510,6 +510,23 @@ export function ProfessionalDashboard() {
           </motion.div>
         </div>
 
+        {/* Space Map — the core level journey, primary focus right after stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <EnhancedSpaceMap />
+        </motion.div>
+
+        {/* ── Secondary widgets — explore more, lower visual priority ── */}
+        <div className="flex items-center gap-3 mt-10 mb-6">
+          <h2 className="text-slate-500 dark:text-slate-400 text-sm font-semibold uppercase tracking-wide whitespace-nowrap">
+            {language === 'ar' ? 'استكشف المزيد' : 'Explore More'}
+          </h2>
+          <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+        </div>
+
         {/* NEW: Daily Streaks + Live World Events Widgets */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 items-start">
           <motion.div
@@ -694,9 +711,6 @@ export function ProfessionalDashboard() {
             </Card>
           </motion.div>
         </div>
-
-        {/* Space Map */}
-        <EnhancedSpaceMap />
 
         {/* Business Resources CTA */}
         <motion.div
