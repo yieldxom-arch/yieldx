@@ -605,39 +605,6 @@ export function AnimatedLoginForm() {
                     </span>
                   </motion.button>
 
-                  {/* Divider */}
-                  <div className="relative flex items-center justify-center my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/10" />
-                    </div>
-                    <div className="relative px-4 bg-[#1A1A2E] text-sm text-gray-500">
-                      {language === 'ar' ? 'أو' : 'OR'}
-                    </div>
-                  </div>
-
-                  {/* Social Login */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { name: 'Google', icon: '🌐' },
-                      { name: 'GitHub', icon: '💻' },
-                    ].map((provider, i) => (
-                      <motion.button
-                        key={provider.name}
-                        type="button"
-                        onClick={() => alert(`Social login with ${provider.name} coming soon! This feature requires OAuth configuration.`)}
-                        className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-medium transition-all flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 + i * 0.1 }}
-                      >
-                        <span className="text-xl">{provider.icon}</span>
-                        <span className="text-sm">{provider.name}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-
                   {/* Sign Up Link */}
                   <p className="text-center text-sm text-gray-400 mt-6">
                     {mode === 'login'
