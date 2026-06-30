@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, ChevronLeft, Rocket } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
+import { useYieldX } from '@/app/contexts/YieldXContext';
 
 const tutorialSteps = [
   {
@@ -33,6 +34,8 @@ const tutorialSteps = [
 ];
 
 export function WelcomeTutorial() {
+  const { theme } = useYieldX();
+  const isDark = theme === 'dark';
   const [showTutorial, setShowTutorial] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -82,13 +85,17 @@ export function WelcomeTutorial() {
             transition={{ type: 'spring', duration: 0.5 }}
             className="w-full max-w-2xl"
           >
-            <Card className="bg-gradient-to-br from-slate-900 to-purple-900 border-purple-500/50 p-8 relative overflow-hidden">
+            <Card className={`p-8 relative overflow-hidden ${
+              isDark
+                ? 'bg-gradient-to-br from-slate-900 to-purple-900 border-purple-500/50'
+                : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-300'
+            }`}>
               {/* Animated Background */}
               <div className="absolute inset-0 opacity-20">
                 {Array.from({ length: 30 }).map((_, i) => (
                   <motion.div
                     key={i}
-                    className="absolute w-1 h-1 bg-white rounded-full"
+                    className={`absolute w-1 h-1 rounded-full ${isDark ? 'bg-white' : 'bg-purple-400'}`}
                     style={{
                       left: `${Math.random() * 100}%`,
                       top: `${Math.random() * 100}%`,
@@ -109,7 +116,9 @@ export function WelcomeTutorial() {
               {/* Close Button */}
               <button
                 onClick={handleClose}
-                className="absolute top-4 left-4 text-white/50 hover:text-white transition-colors z-10"
+                className={`absolute top-4 left-4 transition-colors z-10 ${
+                  isDark ? 'text-white/50 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                }`}
               >
                 <X className="w-6 h-6" />
               </button>
@@ -137,10 +146,10 @@ export function WelcomeTutorial() {
                     className="text-center"
                   >
                     <div className="text-6xl mb-4">{tutorialSteps[currentStep].icon}</div>
-                    <h2 className="text-3xl font-bold text-white mb-4">
+                    <h2 className={`text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       {tutorialSteps[currentStep].title}
                     </h2>
-                    <p className="text-purple-200 text-lg leading-relaxed">
+                    <p className={`text-lg leading-relaxed ${isDark ? 'text-purple-200' : 'text-purple-700'}`}>
                       {tutorialSteps[currentStep].description}
                     </p>
                   </motion.div>
@@ -154,7 +163,7 @@ export function WelcomeTutorial() {
                       className={`w-2 h-2 rounded-full transition-all ${
                         index === currentStep
                           ? 'bg-purple-400 w-8'
-                          : 'bg-white/30'
+                          : isDark ? 'bg-white/30' : 'bg-purple-900/20'
                       }`}
                     />
                   ))}
@@ -165,7 +174,7 @@ export function WelcomeTutorial() {
                   <Button
                     variant="ghost"
                     onClick={handleSkip}
-                    className="text-purple-300 hover:text-white"
+                    className={isDark ? 'text-purple-300 hover:text-white' : 'text-purple-600 hover:text-slate-900'}
                   >
                     تخطي
                   </Button>
@@ -175,16 +184,18 @@ export function WelcomeTutorial() {
                       <Button
                         variant="outline"
                         onClick={handlePrevious}
-                        className="bg-white/10 border-white/20 hover:bg-white/20"
+                        className={isDark
+                          ? 'bg-white/10 border-white/20 hover:bg-white/20 text-white'
+                          : 'bg-slate-900/5 border-slate-900/10 hover:bg-slate-900/10 text-slate-900'}
                       >
                         <ChevronLeft className="w-4 h-4 mr-1" />
                         السابق
                       </Button>
                     )}
-                    
+
                     <Button
                       onClick={handleNext}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                     >
                       {currentStep === tutorialSteps.length - 1 ? 'ابدأ الآن' : 'التالي'}
                       <ChevronRight className="w-4 h-4 ml-1" />

@@ -1,8 +1,8 @@
 import { Toaster as SonnerToaster } from '@/app/components/ui/sonner';
-import { useTheme } from 'next-themes';
+import { useYieldX } from '@/app/contexts/YieldXContext';
 
 export function Toaster() {
-  const { theme } = useTheme();
+  const { theme } = useYieldX();
 
   return (
     <SonnerToaster
