@@ -28,10 +28,11 @@ function getThumbnail(id: string) {
 }
 
 export function ShortsLibrary() {
-  const { setCurrentView, language } = useYieldX();
+  const { setCurrentView, language, theme } = useYieldX();
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const t = translations[language];
   const isRTL = language === 'ar';
+  const isDark = theme === 'dark';
 
   const getVideoTitle = (id: string) => t.videoLibrary.videos[id] ?? id;
   const selectedVideoTitle = selectedVideo ? getVideoTitle(selectedVideo.id) : '';
@@ -53,16 +54,18 @@ export function ShortsLibrary() {
 
   return (
     <div
-      className="min-h-screen bg-[#03121f] text-white px-4 py-6 sm:px-6 sm:py-8"
+      className={`min-h-screen px-4 py-6 sm:px-6 sm:py-8 ${
+        isDark ? 'bg-[#03121f] text-white' : 'bg-slate-50 text-slate-900'
+      }`}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="mx-auto max-w-[1600px]">
         <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div style={{ paddingInline: '0.25rem' }}>
-            <h1 className="text-3xl font-semibold sm:text-4xl text-teal-200">
+            <h1 className={`text-3xl font-semibold sm:text-4xl ${isDark ? 'text-teal-200' : 'text-teal-700'}`}>
               {t.videoLibrary.title}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300 sm:text-base">
+            <p className={`mt-2 max-w-2xl text-sm sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {t.videoLibrary.subtitle}
             </p>
           </div>
@@ -70,7 +73,11 @@ export function ShortsLibrary() {
           <button
             type="button"
             onClick={() => setCurrentView('dashboard')}
-            className="inline-flex items-center gap-2 rounded-2xl border border-teal-400/30 bg-slate-900/80 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:border-teal-300 hover:bg-slate-800"
+            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+              isDark
+                ? 'border-teal-400/30 bg-slate-900/80 text-teal-100 hover:border-teal-300 hover:bg-slate-800'
+                : 'border-teal-400/40 bg-white text-teal-700 hover:border-teal-500 hover:bg-teal-50'
+            }`}
             style={{ paddingInline: '1rem' }}
           >
             <span>{t.videoLibrary.backToDashboard}</span>
@@ -85,7 +92,9 @@ export function ShortsLibrary() {
               onClick={() => setSelectedVideo(video)}
               className="group"
             >
-              <Card className="overflow-hidden border-[#4ECDC4]/20 bg-[#071429] shadow-[0_20px_60px_-35px_rgba(78,220,196,0.9)] transition-transform duration-300 hover:-translate-y-1">
+              <Card className={`overflow-hidden border-[#4ECDC4]/20 shadow-[0_20px_60px_-35px_rgba(78,220,196,0.9)] transition-transform duration-300 hover:-translate-y-1 ${
+                isDark ? 'bg-[#071429]' : 'bg-white'
+              }`}>
                 <div className="relative overflow-hidden aspect-[9/16] bg-slate-950">
                   <img
                     src={getThumbnail(video.id)}
@@ -100,8 +109,8 @@ export function ShortsLibrary() {
                   </div>
                 </div>
 
-                <div className="bg-[#071429] px-4 py-4 sm:px-5 sm:py-5" style={{ paddingInline: '1.25rem' }}>
-                  <p className="line-clamp-3 text-sm font-semibold leading-6 text-slate-100">
+                <div className={`px-4 py-4 sm:px-5 sm:py-5 ${isDark ? 'bg-[#071429]' : 'bg-white'}`} style={{ paddingInline: '1.25rem' }}>
+                  <p className={`line-clamp-3 text-sm font-semibold leading-6 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                     {getVideoTitle(video.id)}
                   </p>
                 </div>
@@ -117,14 +126,20 @@ export function ShortsLibrary() {
           onClick={() => setSelectedVideo(null)}
         >
           <div
-            className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-teal-300/20 bg-[#081a2f] shadow-[0_40px_120px_-40px_rgba(0,0,0,0.65)]"
+            className={`relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-teal-300/20 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.65)] ${
+              isDark ? 'bg-[#081a2f]' : 'bg-white'
+            }`}
             onClick={(event) => event.stopPropagation()}
             dir={isRTL ? 'rtl' : 'ltr'}
           >
             <button
               type="button"
               onClick={() => setSelectedVideo(null)}
-              className="absolute top-4 end-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/90 text-teal-100 transition hover:bg-slate-800"
+              className={`absolute top-4 end-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full transition ${
+                isDark
+                  ? 'bg-slate-900/90 text-teal-100 hover:bg-slate-800'
+                  : 'bg-slate-100 text-teal-700 hover:bg-slate-200'
+              }`}
               aria-label={t.videoLibrary.close}
               style={{ insetInlineEnd: '1rem', insetBlockStart: '1rem' }}
             >
@@ -141,7 +156,7 @@ export function ShortsLibrary() {
             </div>
 
             <div className="space-y-4 px-5 py-5 sm:px-6 sm:py-6" style={{ paddingInline: '1.5rem' }}>
-              <h2 className="text-xl font-semibold text-white sm:text-2xl">
+              <h2 className={`text-xl font-semibold sm:text-2xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {selectedVideoTitle}
               </h2>
             </div>
