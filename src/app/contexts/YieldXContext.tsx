@@ -931,7 +931,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 2,
-    title: 'المتطلبات القانونية والتراخيص',
+    title: 'الإطار القانوني والتنظيمي',
     objective: 'استكمال المتطلبات القانونية والتراخيص اللازمة',
     deliverable: 'قائمة التراخيص والتأمينات وعقود الإيجار',
     submissionType: 'form',
@@ -959,7 +959,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 4,
-    title: 'إدارة الأصول',
+    title: 'الموارد المادية والفنية',
     objective: 'حساب الأصول الثابتة والمواد الخام والإهلاك',
     deliverable: 'جدول الأصول والمواد مع التكاليف والإهلاك',
     submissionType: 'form',
@@ -973,7 +973,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 5,
-    title: 'تخطيط الموظفين',
+    title: 'الموارد البشرية والتنظيمية',
     objective: 'بناء الهيكل الوظيفي وحساب تكاليف الموارد البشرية',
     deliverable: 'الهيكل الوظيفي والرواتب والتأمينات',
     submissionType: 'form',
@@ -987,7 +987,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 6,
-    title: 'التخطيط المالي',
+    title: 'التمويل والمؤشرات المالية',
     objective: 'إعداد الخطة المالية والمؤشرات المالية الرئيسية (5-10 سنوات)',
     deliverable: 'قائمة الدخل والمؤشرات المالية (IRR, NPV, ROI, نقطة التعادل)',
     submissionType: 'form',
@@ -1001,7 +1001,7 @@ const INITIAL_LEVELS: LevelProgress[] = [
   },
   {
     levelId: 7,
-    title: 'معلومات المساهمين وهيكل الملكية',
+    title: 'الهوية والملكية',
     objective: 'تحديد تفاصيل المشروع الأساسية وهيكل الملكية',
     deliverable: 'معلومات المشروع والملاك مع توزيع النسب',
     submissionType: 'form',
