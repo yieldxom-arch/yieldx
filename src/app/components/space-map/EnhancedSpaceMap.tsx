@@ -68,35 +68,35 @@ const getStatusBadge = (status?: string, language: 'ar' | 'en', t: any) => {
   switch (status) {
     case 'not-started':
       return (
-        <Badge className="bg-gray-500/20 text-gray-300">
+        <Badge className="bg-gray-500/20 text-gray-700 dark:text-gray-300">
           <AlertCircle className="w-3 h-3 mr-1" />
           {t.levels.statusNotStarted}
         </Badge>
       );
     case 'in-progress':
       return (
-        <Badge className="bg-yellow-500/20 text-yellow-300">
+        <Badge className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
           <Clock className="w-3 h-3 mr-1" />
           {t.levels.statusInProgress}
         </Badge>
       );
     case 'submitted':
       return (
-        <Badge className="bg-blue-500/20 text-blue-300">
+        <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300">
           <Upload className="w-3 h-3 mr-1" />
           {t.levels.statusSubmitted}
         </Badge>
       );
     case 'graded':
       return (
-        <Badge className="bg-green-500/20 text-green-300">
+        <Badge className="bg-green-500/20 text-green-700 dark:text-green-300">
           <CheckCircle className="w-3 h-3 mr-1" />
           {t.levels.statusGraded}
         </Badge>
       );
     case 'late':
       return (
-        <Badge className="bg-red-500/20 text-red-300">
+        <Badge className="bg-red-500/20 text-red-700 dark:text-red-300">
           <AlertCircle className="w-3 h-3 mr-1" />
           {t.levels.statusLate}
         </Badge>
