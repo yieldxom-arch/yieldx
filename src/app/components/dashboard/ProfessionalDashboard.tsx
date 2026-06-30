@@ -35,6 +35,16 @@ export function ProfessionalDashboard() {
   const [exportProject, setExportProject] = React.useState<SavedProject | null>(null);
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
 
+  // ── Quick-nav section anchors ────────────────────────────────────────────────
+  const progressSectionRef = React.useRef<HTMLDivElement>(null);
+  const levelsSectionRef = React.useRef<HTMLDivElement>(null);
+  const aiToolsSectionRef = React.useRef<HTMLDivElement>(null);
+  const resourcesSectionRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // ── Project Name Validation ──────────────────────────────────────────────────
   const RESERVED_NAMES = [
     'yieldx', 'yield x', 'yieldx platform', 'admin', 'administrator',
@@ -346,6 +356,38 @@ export function ProfessionalDashboard() {
         </div>
       </header>
 
+      {/* ── Sticky Quick-Nav ── thin wayfinding bar, sticks to the top once the header scrolls away */}
+      <div className="sticky top-0 z-30 border-b border-purple-200 dark:border-[#4ECDC4]/20 bg-white/90 dark:bg-[#1B1B3A]/90 backdrop-blur-xl">
+        <div className="container mx-auto px-6">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-2 text-sm">
+            <button
+              onClick={() => scrollToSection(progressSectionRef)}
+              className="shrink-0 px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10 transition-colors"
+            >
+              {language === 'ar' ? 'التقدم' : 'Progress'}
+            </button>
+            <button
+              onClick={() => scrollToSection(levelsSectionRef)}
+              className="shrink-0 px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10 transition-colors"
+            >
+              {language === 'ar' ? 'المستويات' : 'Levels'}
+            </button>
+            <button
+              onClick={() => scrollToSection(aiToolsSectionRef)}
+              className="shrink-0 px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10 transition-colors"
+            >
+              {language === 'ar' ? 'المساعد الذكي' : 'AI Assistant'}
+            </button>
+            <button
+              onClick={() => scrollToSection(resourcesSectionRef)}
+              className="shrink-0 px-3 py-1.5 rounded-full font-medium text-slate-600 dark:text-slate-300 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10 transition-colors"
+            >
+              {language === 'ar' ? 'الموارد' : 'Resources'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Teacher Control Panel Button (only for lecturers) */}
@@ -442,7 +484,7 @@ export function ProfessionalDashboard() {
         )}
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div ref={progressSectionRef} className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 scroll-mt-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -511,13 +553,18 @@ export function ProfessionalDashboard() {
         </div>
 
         {/* Space Map — the core level journey, primary focus right after stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
-          <EnhancedSpaceMap />
-        </motion.div>
+        <div ref={levelsSectionRef} className="scroll-mt-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <EnhancedSpaceMap />
+          </motion.div>
+        </div>
+
+        {/* AI Tools anchor — visible banner content added in a later pass */}
+        <div ref={aiToolsSectionRef} className="scroll-mt-20" />
 
         {/* ── Secondary widgets — explore more, lower visual priority ── */}
         <div className="flex items-center gap-3 mt-10 mb-6">
@@ -547,7 +594,7 @@ export function ProfessionalDashboard() {
         </div>
 
         {/* NEW: Video Library & Subscription Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div ref={resourcesSectionRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 scroll-mt-20">
           {/* Video Library Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
