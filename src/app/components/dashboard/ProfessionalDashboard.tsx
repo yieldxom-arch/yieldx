@@ -510,25 +510,24 @@ export function ProfessionalDashboard() {
           </motion.div>
         </div>
 
-        {/* NEW: Daily Streaks Widget */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          <StreaksWidget />
-        </motion.div>
+        {/* NEW: Daily Streaks + Live World Events Widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 items-start">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <StreaksWidget />
+          </motion.div>
 
-        {/* Live World Events Widget */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="mb-8"
-        >
-          <WorldEventsDashboardWidget />
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+          >
+            <WorldEventsDashboardWidget />
+          </motion.div>
+        </div>
 
         {/* NEW: Video Library & Subscription Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
