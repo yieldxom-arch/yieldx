@@ -413,14 +413,14 @@ function FallbackGrid({ nodes, language, isDark }: { nodes: SceneNode[]; languag
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
-function StatusBadge({ status, language }: { status: string; language: string }) {
+function StatusBadge({ status, language, isDark }: { status: string; language: string; isDark: boolean }) {
   const isAr = language === 'ar';
   const map: Record<string, { label: string; labelAr: string; cls: string }> = {
     graded:       { label: 'Graded',       labelAr: 'مُقيَّم',      cls: 'bg-[#4ECDC4]/20 text-[#4ECDC4] border-[#4ECDC4]/30' },
     submitted:    { label: 'Submitted',    labelAr: 'مُقدَّم',      cls: 'bg-[#7FDBCA]/20 text-[#7FDBCA] border-[#7FDBCA]/30' },
-    'in-progress':{ label: 'In Progress',  labelAr: 'قيد التنفيذ',  cls: 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30' },
-    'not-started':{ label: 'Not Started',  labelAr: 'لم يبدأ',      cls: 'bg-white/10 text-white/50 border-white/10' },
-    locked:       { label: 'Locked',       labelAr: 'مغلق',         cls: 'bg-white/5 text-white/30 border-white/5' },
+    'in-progress':{ label: 'In Progress',  labelAr: 'قيد التنفيذ',  cls: isDark ? 'bg-yellow-400/20 text-yellow-300 border-yellow-400/30' : 'bg-yellow-400/20 text-yellow-700 border-yellow-400/40' },
+    'not-started':{ label: 'Not Started',  labelAr: 'لم يبدأ',      cls: isDark ? 'bg-white/10 text-white/50 border-white/10' : 'bg-slate-900/5 text-slate-500 border-slate-900/10' },
+    locked:       { label: 'Locked',       labelAr: 'مغلق',         cls: isDark ? 'bg-white/5 text-white/30 border-white/5' : 'bg-slate-900/5 text-slate-400 border-slate-900/5' },
   };
   const cfg = map[status] ?? map['not-started'];
   return (
@@ -438,16 +438,25 @@ function StatusBadge({ status, language }: { status: string; language: string })
 function NodePanel({
   node,
   language,
+  isDark,
   onClose,
   onNavigate,
 }: {
   node: SceneNode;
   language: string;
+  isDark: boolean;
   onClose: () => void;
   onNavigate?: (levelId: number) => void;
 }) {
   const isAr = language === 'ar';
   const pct = Math.round(node.progress * 100);
+
+  const titleText = isDark ? '#ffffff' : '#0f172a';
+  const mutedText = isDark ? 'rgba(255,255,255,0.5)' : '#64748b';
+  const closeBtnCls = isDark
+    ? 'text-white/40 hover:text-white/80'
+    : 'text-slate-400 hover:text-slate-700';
+  const trackBg = isDark ? 'bg-white/10' : 'bg-slate-900/10';
 
   return (
     <motion.div
@@ -457,7 +466,9 @@ function NodePanel({
       transition={{ type: 'spring', damping: 20, stiffness: 200 }}
       className="absolute top-1/2 right-4 -translate-y-1/2 w-56 rounded-2xl border overflow-hidden shadow-2xl z-20"
       style={{
-        background: `linear-gradient(135deg, ${TOKEN.navy}f0, ${TOKEN.darkNavy}f0)`,
+        background: isDark
+          ? `linear-gradient(135deg, ${TOKEN.navy}f0, ${TOKEN.darkNavy}f0)`
+          : 'linear-gradient(135deg, #fffffff5, #f1f5f9f5)',
         borderColor: node.hexColor + '50',
         backdropFilter: 'blur(16px)',
       }}
@@ -472,7 +483,7 @@ function NodePanel({
           </div>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white/80 transition-colors"
+            className={`transition-colors ${closeBtnCls}`}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -480,20 +491,20 @@ function NodePanel({
         </div>
 
         <div>
-          <p className="text-white font-semibold text-sm leading-tight">
+          <p className="font-semibold text-sm leading-tight" style={{ color: titleText }}>
             {isAr ? node.titleAr : node.title}
           </p>
           <div className="mt-1">
-            <StatusBadge status={node.status} language={language} />
+            <StatusBadge status={node.status} language={language} isDark={isDark} />
           </div>
         </div>
 
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-white/50">
+          <div className="flex justify-between text-xs" style={{ color: mutedText }}>
             <span>{isAr ? 'التقدم' : 'Progress'}</span>
             <span>{pct}%</span>
           </div>
-          <div className="w-full h-1.5 rounded-full bg-white/10">
+          <div className={`w-full h-1.5 rounded-full ${trackBg}`}>
             <div
               className="h-1.5 rounded-full transition-all"
               style={{ width: `${pct}%`, background: node.hexColor }}
@@ -502,7 +513,7 @@ function NodePanel({
         </div>
 
         <div className="flex items-center justify-between text-xs">
-          <span className="text-white/50 flex items-center gap-1">
+          <span className="flex items-center gap-1" style={{ color: mutedText }}>
             <Award className="w-3 h-3" />
             {isAr ? 'النقاط' : 'XP'}
           </span>
@@ -513,8 +524,8 @@ function NodePanel({
 
         {node.grade != null && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/50">{isAr ? 'الدرجة' : 'Grade'}</span>
-            <span className="font-bold text-white">{node.grade}%</span>
+            <span style={{ color: mutedText }}>{isAr ? 'الدرجة' : 'Grade'}</span>
+            <span className="font-bold" style={{ color: titleText }}>{node.grade}%</span>
           </div>
         )}
 
@@ -537,12 +548,14 @@ function SharePanel({
   projectId,
   projectName,
   language,
+  isDark,
   onClose,
   onDownload,
 }: {
   projectId: string | null;
   projectName: string;
   language: string;
+  isDark: boolean;
   onClose: () => void;
   onDownload: () => void;
 }) {
@@ -559,6 +572,19 @@ function SharePanel({
     else { setCopiedEmbed(true); setTimeout(() => setCopiedEmbed(false), 2000); }
   };
 
+  const titleCls = isDark ? 'text-white' : 'text-slate-900';
+  const closeBtnCls = isDark ? 'text-white/40 hover:text-white/80' : 'text-slate-400 hover:text-slate-700';
+  const labelCls = isDark ? 'text-white/50' : 'text-slate-500';
+  const fieldCls = isDark
+    ? 'bg-white/5 border border-white/10 text-white/70'
+    : 'bg-slate-900/5 border border-slate-900/15 text-slate-700';
+  const embedFieldCls = isDark
+    ? 'bg-white/5 border border-white/10 text-white/60'
+    : 'bg-slate-900/5 border border-slate-900/15 text-slate-600';
+  const copyBtnCls = isDark
+    ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white'
+    : 'border-slate-900/15 bg-slate-900/5 hover:bg-slate-900/10 text-slate-500 hover:text-slate-900';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -566,31 +592,31 @@ function SharePanel({
       exit={{ opacity: 0, y: 20 }}
       className="absolute bottom-20 left-1/2 -translate-x-1/2 w-80 rounded-2xl border p-5 shadow-2xl z-30 space-y-4"
       style={{
-        background: `${TOKEN.navy}f8`,
+        background: isDark ? `${TOKEN.navy}f8` : '#ffffff',
         borderColor: TOKEN.teal + '40',
         backdropFilter: 'blur(20px)',
       }}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-white font-semibold text-sm">
+        <h3 className={`font-semibold text-sm ${titleCls}`}>
           {isAr ? 'مشاركة العرض ثلاثي الأبعاد' : 'Share 3D View'}
         </h3>
-        <button onClick={onClose} className="text-white/40 hover:text-white/80 transition-colors">
+        <button onClick={onClose} className={`transition-colors ${closeBtnCls}`}>
           <X className="w-4 h-4" />
         </button>
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-white/50 text-xs">{isAr ? 'رابط المشاركة' : 'Share link'}</p>
+        <p className={`text-xs ${labelCls}`}>{isAr ? 'رابط المشاركة' : 'Share link'}</p>
         <div className="flex items-center gap-2">
           <input
             readOnly
             value={shareUrl}
-            className="flex-1 text-xs rounded-lg px-3 py-2 bg-white/5 border border-white/10 text-white/70 truncate outline-none"
+            className={`flex-1 text-xs rounded-lg px-3 py-2 truncate outline-none ${fieldCls}`}
           />
           <button
             onClick={() => copy(shareUrl, 'link')}
-            className="shrink-0 p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+            className={`shrink-0 p-2 rounded-lg border transition-colors ${copyBtnCls}`}
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-[#4ECDC4]" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
@@ -598,17 +624,17 @@ function SharePanel({
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-white/50 text-xs">{isAr ? 'كود التضمين' : 'Embed code'}</p>
+        <p className={`text-xs ${labelCls}`}>{isAr ? 'كود التضمين' : 'Embed code'}</p>
         <div className="flex items-start gap-2">
           <textarea
             readOnly
             value={embedCode}
             rows={3}
-            className="flex-1 text-xs rounded-lg px-3 py-2 bg-white/5 border border-white/10 text-white/60 resize-none outline-none font-mono"
+            className={`flex-1 text-xs rounded-lg px-3 py-2 resize-none outline-none font-mono ${embedFieldCls}`}
           />
           <button
             onClick={() => copy(embedCode, 'embed')}
-            className="shrink-0 mt-0.5 p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+            className={`shrink-0 mt-0.5 p-2 rounded-lg border transition-colors ${copyBtnCls}`}
           >
             {copiedEmbed ? <Check className="w-3.5 h-3.5 text-[#4ECDC4]" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
@@ -637,6 +663,7 @@ function FullProjectPanel({
   projectName,
   projectType,
   language,
+  isDark,
   onClose,
   onNavigate,
 }: {
@@ -646,10 +673,23 @@ function FullProjectPanel({
   projectName: string;
   projectType?: string;
   language: string;
+  isDark: boolean;
   onClose: () => void;
   onNavigate?: (levelId: number) => void;
 }) {
   const isAr = language === 'ar';
+  const titleText = isDark ? '#ffffff' : '#0f172a';
+  const mutedText = isDark ? 'rgba(255,255,255,0.5)' : '#64748b';
+  const fainterText = isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8';
+  const closeBtnCls = isDark ? 'text-white/40 hover:text-white/80' : 'text-slate-400 hover:text-slate-700';
+  const trackBg = isDark ? 'bg-white/10' : 'bg-slate-900/10';
+  const arcTrackStroke = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.1)';
+  const arcTextFill = isDark ? '#ffffff' : '#0f172a';
+  const rowHoverBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)';
+  const lockedRowText = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(15,23,42,0.3)';
+  const activeRowText = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.85)';
+  const lockIconCls = isDark ? 'text-white/20' : 'text-slate-300';
+  const chevronCls = isDark ? 'text-white/30' : 'text-slate-400';
   const completedCount = nodes.filter(n =>
     n.status === 'graded' || n.status === 'submitted' || n.progress >= 1,
   ).length;
@@ -687,7 +727,9 @@ function FullProjectPanel({
       transition={{ type: 'spring', damping: 24, stiffness: 200 }}
       className="absolute top-0 left-0 bottom-0 w-72 z-20 flex flex-col overflow-hidden"
       style={{
-        background: `linear-gradient(180deg, ${TOKEN.navy}f5 0%, ${TOKEN.darkNavy}f5 100%)`,
+        background: isDark
+          ? `linear-gradient(180deg, ${TOKEN.navy}f5 0%, ${TOKEN.darkNavy}f5 100%)`
+          : 'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)',
         borderRight: `1px solid ${TOKEN.teal}20`,
         backdropFilter: 'blur(20px)',
       }}
@@ -699,11 +741,11 @@ function FullProjectPanel({
       >
         <div className="flex items-center gap-2 min-w-0">
           <Layers className="w-4 h-4 flex-shrink-0" style={{ color: TOKEN.teal }} />
-          <span className="text-white font-semibold text-sm truncate">
+          <span className="font-semibold text-sm truncate" style={{ color: titleText }}>
             {isAr ? 'عرض المشروع الكامل' : 'Full Project View'}
           </span>
         </div>
-        <button onClick={onClose} className="text-white/40 hover:text-white/80 transition-colors flex-shrink-0">
+        <button onClick={onClose} className={`transition-colors flex-shrink-0 ${closeBtnCls}`}>
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -711,7 +753,7 @@ function FullProjectPanel({
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {/* Project identity */}
         <div className="px-4 py-4 space-y-1" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
-          <p className="text-white font-bold text-sm leading-tight truncate">{projectName}</p>
+          <p className="font-bold text-sm leading-tight truncate" style={{ color: titleText }}>{projectName}</p>
           {typeLabel && (
             <span
               className="inline-block text-xs px-2 py-0.5 rounded-full"
@@ -724,11 +766,11 @@ function FullProjectPanel({
 
         {/* Overall progress */}
         <div className="px-4 py-4" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
-          <p className="text-white/50 text-xs mb-3">{isAr ? 'التقدم الإجمالي' : 'Overall Progress'}</p>
+          <p className="text-xs mb-3" style={{ color: mutedText }}>{isAr ? 'التقدم الإجمالي' : 'Overall Progress'}</p>
           <div className="flex items-center gap-4">
             {/* Arc gauge */}
             <svg width="72" height="72" viewBox="0 0 72 72" className="flex-shrink-0">
-              <circle cx="36" cy="36" r={arcR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
+              <circle cx="36" cy="36" r={arcR} fill="none" stroke={arcTrackStroke} strokeWidth="5" />
               <circle
                 cx="36" cy="36" r={arcR}
                 fill="none"
@@ -738,17 +780,17 @@ function FullProjectPanel({
                 strokeDasharray={`${arcDash} ${arcCirc}`}
                 transform="rotate(-90 36 36)"
               />
-              <text x="36" y="40" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold">
+              <text x="36" y="40" textAnchor="middle" fill={arcTextFill} fontSize="13" fontWeight="bold">
                 {overallPct}%
               </text>
             </svg>
             <div className="space-y-2 text-xs">
               <div>
-                <p className="text-white/40">{isAr ? 'المستويات المكتملة' : 'Levels done'}</p>
-                <p className="text-white font-semibold">{completedCount} / {nodes.length}</p>
+                <p style={{ color: fainterText }}>{isAr ? 'المستويات المكتملة' : 'Levels done'}</p>
+                <p className="font-semibold" style={{ color: titleText }}>{completedCount} / {nodes.length}</p>
               </div>
               <div>
-                <p className="text-white/40">{isAr ? 'النقاط' : 'XP earned'}</p>
+                <p style={{ color: fainterText }}>{isAr ? 'النقاط' : 'XP earned'}</p>
                 <p className="font-semibold" style={{ color: TOKEN.teal }}>{totalXp} / {maxTotalXp}</p>
               </div>
             </div>
@@ -757,7 +799,7 @@ function FullProjectPanel({
 
         {/* Level list */}
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
-          <p className="text-white/50 text-xs mb-2">{isAr ? 'المستويات' : 'Levels'}</p>
+          <p className="text-xs mb-2" style={{ color: mutedText }}>{isAr ? 'المستويات' : 'Levels'}</p>
           <div className="space-y-1">
             {nodes.map((node) => (
               <button
@@ -765,7 +807,7 @@ function FullProjectPanel({
                 onClick={() => node.status !== 'locked' && onNavigate?.(node.levelId)}
                 className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors text-left"
                 style={{ cursor: node.status === 'locked' ? 'default' : 'pointer' }}
-                onMouseOver={(e) => { if (node.status !== 'locked') e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseOver={(e) => { if (node.status !== 'locked') e.currentTarget.style.background = rowHoverBg; }}
                 onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <div
@@ -775,16 +817,16 @@ function FullProjectPanel({
                   {node.levelId}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate" style={{ color: node.status === 'locked' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.85)' }}>
+                  <p className="text-xs font-medium truncate" style={{ color: node.status === 'locked' ? lockedRowText : activeRowText }}>
                     {isAr ? node.titleAr : node.title}
                   </p>
-                  <div className="w-full h-0.5 rounded-full bg-white/10 mt-1">
+                  <div className={`w-full h-0.5 rounded-full mt-1 ${trackBg}`}>
                     <div className="h-0.5 rounded-full" style={{ width: `${node.progress * 100}%`, background: node.hexColor }} />
                   </div>
                 </div>
                 {node.status === 'locked'
-                  ? <Lock className="w-3 h-3 text-white/20 flex-shrink-0" />
-                  : <ChevronRight className="w-3 h-3 text-white/30 flex-shrink-0" />}
+                  ? <Lock className={`w-3 h-3 flex-shrink-0 ${lockIconCls}`} />
+                  : <ChevronRight className={`w-3 h-3 flex-shrink-0 ${chevronCls}`} />}
               </button>
             ))}
           </div>
@@ -795,7 +837,7 @@ function FullProjectPanel({
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${TOKEN.teal}10` }}>
             <div className="flex items-center gap-1.5 mb-2">
               <TrendingUp className="w-3.5 h-3.5" style={{ color: TOKEN.cyan }} />
-              <p className="text-white/50 text-xs">{isAr ? 'المؤشرات المالية' : 'Financial KPIs'}</p>
+              <p className="text-xs" style={{ color: mutedText }}>{isAr ? 'المؤشرات المالية' : 'Financial KPIs'}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -809,7 +851,7 @@ function FullProjectPanel({
                   className="rounded-lg px-2.5 py-2"
                   style={{ background: color + '12', border: `1px solid ${color}20` }}
                 >
-                  <p className="text-white/40 text-xs">{isAr ? labelAr : label}</p>
+                  <p className="text-xs" style={{ color: fainterText }}>{isAr ? labelAr : label}</p>
                   <p className="font-bold text-sm leading-tight" style={{ color }}>{value}</p>
                 </div>
               ))}
@@ -822,19 +864,19 @@ function FullProjectPanel({
           <div className="px-4 py-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Target className="w-3.5 h-3.5" style={{ color: TOKEN.mint }} />
-              <p className="text-white/50 text-xs">{isAr ? 'نموذج الأعمال' : 'Business Model Canvas'}</p>
+              <p className="text-xs" style={{ color: mutedText }}>{isAr ? 'نموذج الأعمال' : 'Business Model Canvas'}</p>
             </div>
             <div
               className="rounded-lg px-3 py-2.5 flex items-center justify-between"
               style={{ background: TOKEN.mint + '12', border: `1px solid ${TOKEN.mint}20` }}
             >
               <div>
-                <p className="text-white/40 text-xs">{isAr ? 'العناصر المكتملة' : 'Filled blocks'}</p>
+                <p className="text-xs" style={{ color: fainterText }}>{isAr ? 'العناصر المكتملة' : 'Filled blocks'}</p>
                 <p className="font-bold text-sm" style={{ color: TOKEN.mint }}>{bmcFilledCount} / {bmcTotal}</p>
               </div>
               <div className="w-12 h-12">
                 <svg viewBox="0 0 40 40">
-                  <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                  <circle cx="20" cy="20" r="16" fill="none" stroke={arcTrackStroke} strokeWidth="4" />
                   <circle
                     cx="20" cy="20" r="16"
                     fill="none"
@@ -1275,7 +1317,7 @@ export function ProjectVisualization3D({
             onTouchEnd={onTouchEnd}
           />
         ) : (
-          <FallbackGrid nodes={nodes} language={language} />
+          <FallbackGrid nodes={nodes} language={language} isDark={isDark} />
         )}
 
         {/* Hint overlay (fades after mount) */}
@@ -1317,6 +1359,7 @@ export function ProjectVisualization3D({
             <NodePanel
               node={selectedNode}
               language={language}
+              isDark={isDark}
               onClose={() => { setSelectedNode(null); rs.current.selectedId = null; }}
               onNavigate={handleNavigate}
             />
@@ -1330,6 +1373,7 @@ export function ProjectVisualization3D({
               projectId={activeSavedProjectId}
               projectName={activeProject?.name ?? 'project'}
               language={language}
+              isDark={isDark}
               onClose={() => setShowShare(false)}
               onDownload={() => { downloadSnapshot(); setShowShare(false); }}
             />
@@ -1346,6 +1390,7 @@ export function ProjectVisualization3D({
               projectName={activeProject?.name ?? (isAr ? 'مشروعي' : 'My Project')}
               projectType={activeProject?.projectType}
               language={language}
+              isDark={isDark}
               onClose={() => setShowProjectPanel(false)}
               onNavigate={handleNavigate}
             />
