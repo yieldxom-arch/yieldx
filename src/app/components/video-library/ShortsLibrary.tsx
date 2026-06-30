@@ -126,7 +126,7 @@ export function ShortsLibrary() {
           onClick={() => setSelectedVideo(null)}
         >
           <div
-            className={`relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-teal-300/20 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.65)] ${
+            className={`relative max-h-[90vh] max-w-full overflow-y-auto rounded-[28px] border border-teal-300/20 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.65)] ${
               isDark ? 'bg-[#081a2f]' : 'bg-white'
             }`}
             onClick={(event) => event.stopPropagation()}
@@ -146,7 +146,7 @@ export function ShortsLibrary() {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="aspect-[9/16] bg-black">
+            <div className="aspect-[9/16] bg-black h-[60vh] sm:h-[70vh] max-w-full mx-auto">
               <iframe
                 src={`https://www.youtube.com/embed/${selectedVideo.id}?autoplay=1`}
                 title={selectedVideoTitle}
