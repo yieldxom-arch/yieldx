@@ -1,24 +1,10 @@
-# TODO — Manual Admin-Approval Subscription System
+# TODO — Light Mode fix for 3D Project Presentation cards
 
-## Step 1 — PaymentForm.tsx
-- [x] Replace fake instant-payment flow with manual approval submission UI (bilingual).
-- [x] Ensure it writes to Supabase `upgrade_requests` (insert) with correct fields.
+- [x] Inspect how the app theme is stored (isDark/theme/dark class) and how other components react.
+- [x] Implement theme-responsive wiring in `src/app/components/visualization/ProjectVisualization3D.tsx` (read `theme` from `useYieldX()` and derive `isDark`).
+- [ ] Update cards/panels/buttons/badges to fully switch between Dark and Light mode (no hardcoded dark-only styling).
 
-## Step 2 — Supabase migration
-- [x] Create a new migration file to add `upgrade_requests` table + RLS policies.
-
-## Step 3 — Edge Functions
-- [x] Create Edge Function `approve-upgrade` (admin-only) to approve: update `users.subscription_tier` and request status.
-- [x] Create Edge Function `reject-upgrade` (admin-only) to reject: update request status (+ reason).
-
-## Step 4 — Admin panel UI
-- [x] Find existing admin dashboard component; add new section for pending upgrade requests.
-- [x] Wire Approve/Reject buttons to the new Edge Functions.
-
-## Step 5 — Build verification
-- [x] Run `npm run build` and confirm compilation. ✓ (no errors)
-
-## Step 6 — Deployment instructions
-- [x] Provide exact `supabase` CLI commands to deploy migration + edge functions.
-- [x] Provide clear “where to click” instructions for admins in the UI.
+- [ ] Update light-mode glow -> subtle light shadow.
+- [ ] Ensure every child element updates instantly on theme toggle.
+- [ ] Run typecheck/build and verify visually.
 

@@ -368,8 +368,13 @@ function renderScene(
 }
 
 // ─── Static HTML fallback (no canvas support) ────────────────────────────────
-function FallbackGrid({ nodes, language }: { nodes: SceneNode[]; language: string }) {
+function FallbackGrid({ nodes, language, isDark }: { nodes: SceneNode[]; language: string; isDark: boolean }) {
   const isAr = language === 'ar';
+  const cardBg = isDark ? TOKEN.navy : '#ffffff';
+  const cardText = isDark ? 'rgba(255,255,255,0.8)' : '#1f2937';
+  const subText = isDark ? 'rgba(255,255,255,0.4)' : '#4b5563';
+  const glowBg = isDark ? `linear-gradient(135deg, #7FDBCA18, ${TOKEN.navy})` : `linear-gradient(135deg, rgba(78,205,196,0.10), #ffffff)`;
+
   return (
     <div className="w-full h-full overflow-auto p-6">
       <p className="text-center text-white/40 text-xs mb-4">
@@ -863,8 +868,19 @@ export function ProjectVisualization3D({
   onNavigateToLevel,
   compact = false,
 }: ProjectVisualization3DProps) {
-  const { levels, savedProjects, activeSavedProjectId, language, financialKPIs, bmcData, setCurrentView } = useYieldX();
+  const {
+    levels,
+    savedProjects,
+    activeSavedProjectId,
+    language,
+    financialKPIs,
+    bmcData,
+    setCurrentView,
+    theme,
+  } = useYieldX();
   const isAr = language === 'ar';
+  const isDark = theme === 'dark';
+
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1153,9 +1169,13 @@ export function ProjectVisualization3D({
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: `linear-gradient(135deg, ${TOKEN.teal}, ${TOKEN.cyan})` }}
           >
-            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                fill={isDark ? '#ffffff' : '#111827'}
+              />
             </svg>
+
           </div>
           <div className="min-w-0">
             <p className="text-white font-semibold text-sm truncate">
