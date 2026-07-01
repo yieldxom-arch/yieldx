@@ -80,6 +80,7 @@ export function StudentWorkspaceView() {
     user, language, translations, savedProjects, deleteSavedProject, loadSavedProject,
     setCurrentView, workspaces, currentWorkspace, setCurrentWorkspace,
     getWorkspaceByCode, forkWorkspace, createWorkspace, updateWorkspace,
+    saveProject,
     getProjectChat, getUnreadMessageCount, markChatAsRead,
   } = useYieldX();
 
@@ -196,8 +197,12 @@ export function StudentWorkspaceView() {
       toast.error(language === 'ar' ? 'الكود غير صحيح' : 'Invalid code');
       return;
     }
-    setIsJoinDialogOpen(false); setJoinCode('');
-    toast.success(language === 'ar' ? 'تم العثور على المشروع' : 'Project found');
+    const forked = forkWorkspace(workspace.id);
+    if (forked) {
+      saveProject(forked.name, 'code');
+      setIsJoinDialogOpen(false); setJoinCode('');
+      toast.success(language === 'ar' ? 'تم العثور على المشروع' : 'Project found');
+    }
   };
 
   const handleContinueProject = (project: SavedProject) => {
