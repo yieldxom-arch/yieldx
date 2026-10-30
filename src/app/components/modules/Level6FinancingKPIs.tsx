@@ -7,6 +7,8 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
 import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
+import { ScenarioRiskPanel } from '@/app/components/scenario/ScenarioRiskPanel';
+import type { BaseProjection } from '@/lib/scenario';
 
 interface Insurance {
   id: string;
@@ -143,31 +145,35 @@ export function Level6FinancingKPIs() {
   const projections = generateProjections();
 
   // Calculate Financial KPIs
+  // Cash flow = profit + depreciation: depreciation is a non-cash expense, and the
+  // investment is already counted once at year 0, so it must not be deducted twice.
+  const projectCashFlows = [-totalInvestment, ...projections.map(p => p.profit + p.depreciation)];
+
+  const npvAt = (rate: number) =>
+    projectCashFlows.reduce((sum, cf, t) => sum + cf / Math.pow(1 + rate, t), 0);
+
   const calculateIRR = () => {
-    // Simplified IRR calculation (approximation)
-    const cashFlows = [-totalInvestment, ...projections.map(p => p.profit)];
-    let irr = 0.1; // Start with 10% guess
-    
-    // Newton-Raphson method (simplified for 5 iterations)
-    for (let i = 0; i < 5; i++) {
-      let npv = 0;
-      let derivative = 0;
-      
-      cashFlows.forEach((cf, t) => {
-        npv += cf / Math.pow(1 + irr, t);
-        derivative -= (t * cf) / Math.pow(1 + irr, t + 1);
-      });
-      
-      irr = irr - npv / derivative;
+    // Bisection on NPV(rate) = 0 between -99% and +1000%: always converges when a root exists.
+    let lo = -0.99;
+    let hi = 10;
+    let fLo = npvAt(lo);
+    const fHi = npvAt(hi);
+    if (!Number.isFinite(fLo) || !Number.isFinite(fHi) || fLo * fHi > 0) return 0; // no IRR in range
+    for (let i = 0; i < 200; i++) {
+      const mid = (lo + hi) / 2;
+      const fMid = npvAt(mid);
+      if (Math.abs(fMid) < 1e-6) return mid * 100;
+      if (fLo * fMid < 0) {
+        hi = mid;
+      } else {
+        lo = mid;
+        fLo = fMid;
+      }
     }
-    
-    return irr * 100; // Convert to percentage
+    return ((lo + hi) / 2) * 100; // Convert to percentage
   };
 
-  const calculateNPV = (discountRate: number = 0.1) => {
-    const cashFlows = [-totalInvestment, ...projections.map(p => p.profit)];
-    return cashFlows.reduce((npv, cf, t) => npv + cf / Math.pow(1 + discountRate, t), 0);
-  };
+  const calculateNPV = (discountRate: number = 0.1) => npvAt(discountRate);
 
   const calculateROI = () => {
     const totalProfit = projections.reduce((sum, p) => sum + p.profit, 0);
@@ -181,14 +187,15 @@ export function Level6FinancingKPIs() {
 
   const calculatePaybackPeriod = () => {
     let cumulativeCashFlow = -totalInvestment;
-    
+
     for (let i = 0; i < projections.length; i++) {
-      cumulativeCashFlow += projections[i].profit;
-      if (cumulativeCashFlow >= 0) {
-        return i + 1 - (cumulativeCashFlow - projections[i].profit) / projections[i].profit;
+      const yearCash = projections[i].profit + projections[i].depreciation;
+      cumulativeCashFlow += yearCash;
+      if (cumulativeCashFlow >= 0 && yearCash > 0) {
+        return i + 1 - cumulativeCashFlow / yearCash;
       }
     }
-    
+
     return projections.length; // If not recovered within projection period
   };
 
@@ -222,6 +229,25 @@ export function Level6FinancingKPIs() {
   const breakEvenUnits = calculateBreakEven();
   const currentRatio = calculateCurrentRatio();
   const debtToEquity = calculateDebtToEquity();
+
+  // Inputs for the Monte Carlo risk simulation, taken from the same figures as the table above.
+  const scenarioBase: BaseProjection | null = annualRevenue > 0
+    ? (() => {
+        const revGrowth = (parseFloat(revenueGrowthRate) || 0) / 100;
+        const costGrowth = (parseFloat(costGrowthRate) || 0) / 100;
+        const years = Array.from({ length: projectionYears }, (_, y) => y);
+        const fixedMonthly = monthlySalaries + monthlyPropertyCost + monthlyInsurance + 200;
+        return {
+          initialInvestment: totalInvestment,
+          revenue: years.map(y => annualRevenue * Math.pow(1 + revGrowth, y)),
+          costs: [
+            { label: 'Raw materials', type: 'variable' as const, yearly: years.map(y => monthlyRawMaterials * 12 * Math.pow(1 + costGrowth, y)) },
+            { label: 'Salaries, rent, insurance, utilities', type: 'fixed' as const, yearly: years.map(y => fixedMonthly * 12 * Math.pow(1 + costGrowth, y)) },
+            { label: 'Loan interest', type: 'fixed' as const, yearly: years.map(() => annualInterest) },
+          ],
+        };
+      })()
+    : null;
 
   // Save data automatically
   const saveCurrentData = () => {
@@ -1109,6 +1135,14 @@ export function Level6FinancingKPIs() {
             </div>
           </Card>
         </motion.div>
+
+        {/* Monte Carlo risk simulation */}
+        <ScenarioRiskPanel
+          base={scenarioBase}
+          language={language as 'ar' | 'en'}
+          isDark={isDark}
+          onResult={(summary) => updateModuleData('level6', { scenario: summary })}
+        />
 
         {/* Validation Errors */}
         {validationErrors.length > 0 && (
