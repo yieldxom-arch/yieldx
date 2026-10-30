@@ -146,8 +146,8 @@ export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
         <div className={`flex items-center gap-2 ${isDark ? 'text-cyan-200' : 'text-cyan-800'}`}>
           <Info className="w-5 h-5" />
           {isRTL
-            ? 'أكمل الإيرادات (المستوى 5) والتكاليف لتشغيل محاكاة المخاطر.'
-            : 'Complete revenue (Level 5) and costs to run the risk simulation.'}
+            ? 'أضف منتجاتك في مستوى السوق والاستراتيجية، أو أدخل الإيرادات الشهرية المتوقعة أعلاه، لتشغيل محاكاة المخاطر.'
+            : 'Add your products in Market & Strategy, or enter the expected monthly revenue above, to run the risk simulation.'}
         </div>
       </Card>
     );

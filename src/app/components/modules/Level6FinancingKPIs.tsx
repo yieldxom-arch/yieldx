@@ -18,17 +18,25 @@ interface Insurance {
 }
 
 export function Level6FinancingKPIs() {
-  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateFinancialKPIs, studyModeData, projectTypeData, enhancedSWOT, bmcData, oman2040, theme } = useYieldX();
+  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, updateFinancialKPIs, financialKPIs, studyModeData, projectTypeData, enhancedSWOT, bmcData, oman2040, theme } = useYieldX();
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
   const savedData = moduleData['level6'];
   
-  // Get data from previous levels
-  const level2Data = moduleData['level2'];
-  const level3Data = moduleData['level3'];
-  const level4Data = moduleData['level4'];
-  const level5Data = moduleData['level5'];
+  // Get data from the other levels. Keys follow the journey routing:
+  // level2 = Legal (licences, leases), level3 = Operational (rent, utilities),
+  // level4 = Physical resources (assets, raw materials), level5 = Human resources,
+  // level7 = Market & Strategy (products, revenue).
+  const legalData = moduleData['level2'];
+  const operationsData = moduleData['level3'];
+  const physicalData = moduleData['level4'];
+  const hrData = moduleData['level5'];
+  const marketData = moduleData['level7'];
+  const num = (v: any) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
 
   // State
   const [equityAmount, setEquityAmount] = useState(savedData?.equityAmount || '');
@@ -38,6 +46,8 @@ export function Level6FinancingKPIs() {
   const [loanTermYears, setLoanTermYears] = useState(savedData?.loanTermYears || '5');
   const [revenueGrowthRate, setRevenueGrowthRate] = useState(savedData?.revenueGrowthRate || '10');
   const [costGrowthRate, setCostGrowthRate] = useState(savedData?.costGrowthRate || '5');
+  // Used only when Market & Strategy (Level 7) has no products yet.
+  const [manualMonthlyRevenue, setManualMonthlyRevenue] = useState(savedData?.manualMonthlyRevenue || '');
   
   const [insurances, setInsurances] = useState<Insurance[]>(
     savedData?.insurances && savedData.insurances.length > 0
@@ -60,9 +70,17 @@ export function Level6FinancingKPIs() {
   const projectionYears = studyModeData?.mode === 'advanced' ? 10 : 5;
 
   // Calculate total investment
-  const fixedAssetsCost = level3Data?.totalFixedAssetsCost || 0;
-  const licenseCosts = level2Data?.licenses?.reduce((sum: number, l: any) => sum + (parseFloat(l.cost) || 0), 0) || 0;
-  const workingCapital = ((level4Data?.totalMonthlySalaries || 0) + (level3Data?.totalMonthlyRawMaterialCost || 0)) * 3; // 3 months
+  const fixedAssetsCost = num(physicalData?.totalFixedAssetsCost);
+  const legalLicenseCosts = (legalData?.licenses || []).reduce((sum: number, l: any) => sum + num(l.cost), 0);
+  // Licence costs come from Level 2; fall back to the Operational estimate if Level 2 has none.
+  const licenseCosts = legalLicenseCosts > 0 ? legalLicenseCosts : num(operationsData?.licensesCost);
+  // Staff cost includes social insurance, expat health insurance and training (Level 5 total).
+  const monthlySalaries = hrData?.totalAnnualHRCost ? num(hrData.totalAnnualHRCost) / 12 : num(hrData?.totalMonthlySalaries);
+  // Raw materials from Level 4; fall back to the Operational estimate.
+  const monthlyRawMaterials = num(physicalData?.totalMonthlyRawMaterialCost) > 0
+    ? num(physicalData?.totalMonthlyRawMaterialCost)
+    : num(operationsData?.rawMaterialsCost);
+  const workingCapital = (monthlySalaries + monthlyRawMaterials) * 3; // 3 months
   const preOperatingCosts = licenseCosts * 1.2; // 20% buffer for pre-operating
   
   const totalInvestment = fixedAssetsCost + workingCapital + preOperatingCosts;
@@ -102,19 +120,22 @@ export function Level6FinancingKPIs() {
   };
 
   // Monthly calculations
-  const monthlyRevenue = level5Data?.totalMonthlyRevenue || 0;
-  const monthlySalaries = level4Data?.totalMonthlySalaries || 0;
-  const monthlyRawMaterials = level3Data?.totalMonthlyRawMaterialCost || 0;
-  // Calculate total monthly property cost from all lease contracts
-  const monthlyPropertyCost = level2Data?.leaseContracts?.reduce((total: number, contract: any) => {
-    return total + (parseFloat(contract.monthlyRent) || 0);
-  }, 0) || 0;
-  const monthlyOperatingCosts = monthlySalaries + monthlyRawMaterials + monthlyPropertyCost + monthlyInsurance + 200; // +200 for utilities
+  const marketMonthlyRevenue = num(marketData?.totalMonthlyRevenue);
+  const revenueFromMarket = marketMonthlyRevenue > 0;
+  const monthlyRevenue = revenueFromMarket ? marketMonthlyRevenue : num(manualMonthlyRevenue);
+  // Rent: rented premises from Level 2 lease contracts; fall back to the Operational rent.
+  const leaseRent = (legalData?.leaseContracts || []).reduce((total: number, contract: any) => {
+    return contract?.leaseOrOwn === 'own' ? total : total + num(contract?.monthlyRent);
+  }, 0);
+  const monthlyPropertyCost = leaseRent > 0 ? leaseRent : num(operationsData?.rentCost);
+  // Utilities from Level 3; 200 OMR/month only as a default estimate if not entered.
+  const monthlyUtilities = num(operationsData?.utilities) > 0 ? num(operationsData?.utilities) : 200;
+  const monthlyOperatingCosts = monthlySalaries + monthlyRawMaterials + monthlyPropertyCost + monthlyInsurance + monthlyUtilities;
 
   // Annual calculations
   const annualRevenue = monthlyRevenue * 12;
   const annualOperatingCosts = monthlyOperatingCosts * 12;
-  const annualDepreciation = level3Data?.totalAnnualDepreciation || 0;
+  const annualDepreciation = num(physicalData?.totalAnnualDepreciation);
   const annualInterest = loan * (parseFloat(interestRate) / 100);
   const annualProfit = annualRevenue - annualOperatingCosts - annualDepreciation - annualInterest;
 
@@ -200,13 +221,18 @@ export function Level6FinancingKPIs() {
   };
 
   const calculateBreakEven = () => {
-    // Break-even units per month
-    const fixedCosts = monthlySalaries + monthlyPropertyCost + (annualDepreciation / 12);
-    const avgProductPrice = level5Data?.products?.[0] ? parseFloat(level5Data.products[0].price) || 100 : 100;
-    const avgProfitMargin = level5Data?.products?.[0] ? parseFloat(level5Data.products[0].profitMargin) / 100 || 0.3 : 0.3;
-    const variableCostPerUnit = avgProductPrice * (1 - avgProfitMargin);
-    
-    return fixedCosts / (avgProductPrice - variableCostPerUnit);
+    // Break-even sales (units per month), using the sales mix from Market & Strategy.
+    const fixedCosts = monthlySalaries + monthlyPropertyCost + monthlyInsurance + monthlyUtilities + (annualDepreciation / 12) + (annualInterest / 12);
+    const products: any[] = (marketData?.products || []).filter((p: any) => num(p.price) > 0);
+    if (products.length === 0) return 0;
+    const totalQty = products.reduce((s: number, p: any) => s + num(p.monthlyQuantity), 0);
+    // Weighted average contribution per unit (price × margin), weighted by planned monthly quantity.
+    const contributionPerUnit = products.reduce((s: number, p: any) => {
+      const weight = totalQty > 0 ? num(p.monthlyQuantity) / totalQty : 1 / products.length;
+      const margin = (num(p.profitMargin) || 30) / 100;
+      return s + num(p.price) * margin * weight;
+    }, 0);
+    return contributionPerUnit > 0 ? fixedCosts / contributionPerUnit : 0;
   };
 
   const calculateCurrentRatio = () => {
@@ -236,7 +262,7 @@ export function Level6FinancingKPIs() {
         const revGrowth = (parseFloat(revenueGrowthRate) || 0) / 100;
         const costGrowth = (parseFloat(costGrowthRate) || 0) / 100;
         const years = Array.from({ length: projectionYears }, (_, y) => y);
-        const fixedMonthly = monthlySalaries + monthlyPropertyCost + monthlyInsurance + 200;
+        const fixedMonthly = monthlySalaries + monthlyPropertyCost + monthlyInsurance + monthlyUtilities;
         return {
           initialInvestment: totalInvestment,
           revenue: years.map(y => annualRevenue * Math.pow(1 + revGrowth, y)),
@@ -259,6 +285,9 @@ export function Level6FinancingKPIs() {
       loanTermYears,
       revenueGrowthRate,
       costGrowthRate,
+      manualMonthlyRevenue,
+      monthlyRevenue,
+      revenueSource: revenueFromMarket ? 'market' : 'manual',
       totalInvestment,
       projections,
       kpis: {
@@ -290,7 +319,7 @@ export function Level6FinancingKPIs() {
 
   useEffect(() => {
     saveCurrentData();
-  }, [equityAmount, loanAmount, interestRate, gracePeriodMonths, loanTermYears, revenueGrowthRate, costGrowthRate, insurances]);
+  }, [equityAmount, loanAmount, interestRate, gracePeriodMonths, loanTermYears, revenueGrowthRate, costGrowthRate, insurances, manualMonthlyRevenue, marketMonthlyRevenue]);
 
   // Validate form
   const validateForm = () => {
@@ -810,6 +839,77 @@ export function Level6FinancingKPIs() {
               {isRTL ? 'افتراضات النمو' : 'Growth Assumptions'}
             </h2>
 
+            {/* Where the monthly figures come from (traceable inputs) */}
+            {revenueFromMarket ? (
+              <div className={`mb-4 p-3 rounded-lg border text-sm ${isDark ? 'bg-green-500/10 border-green-500/30 text-green-200' : 'bg-green-50 border-green-300 text-green-800'}`}>
+                {isRTL
+                  ? `الإيرادات الشهرية مأخوذة من مستوى السوق والاستراتيجية (المنتجات): ${Math.round(marketMonthlyRevenue).toLocaleString('en-US')} ر.ع`
+                  : `Monthly revenue comes from Market & Strategy (your products): ${Math.round(marketMonthlyRevenue).toLocaleString('en-US')} OMR`}
+              </div>
+            ) : (
+              <div className={`mb-4 p-4 rounded-lg border ${isDark ? 'bg-amber-500/10 border-amber-500/40' : 'bg-amber-50 border-amber-300'}`}>
+                <div className={`text-sm mb-3 ${isDark ? 'text-amber-200' : 'text-amber-800'}`}>
+                  {isRTL
+                    ? 'لا توجد منتجات في مستوى السوق والاستراتيجية بعد. أدخل الإيرادات الشهرية المتوقعة هنا، أو أكمل ذلك المستوى ليتم حسابها من منتجاتك وأسعارك.'
+                    : 'No products in Market & Strategy yet. Enter your expected monthly revenue here, or complete that level so it is calculated from your products and prices.'}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                  <div className="flex-1">
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-amber-100' : 'text-amber-900'}`}>
+                      {isRTL ? 'الإيرادات الشهرية المتوقعة (ر.ع)' : 'Expected monthly revenue (OMR)'}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={manualMonthlyRevenue}
+                      onChange={(e) => setManualMonthlyRevenue(e.target.value)}
+                      placeholder="3000"
+                      className={`w-full px-4 py-2 rounded-lg border ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-amber-300 text-slate-900'}`}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentView('module-7')}
+                    className={isDark ? 'border-amber-400/50 text-amber-200 hover:bg-amber-500/20' : 'border-amber-400 text-amber-800 hover:bg-amber-100'}
+                  >
+                    {isRTL ? 'الذهاب إلى السوق والاستراتيجية' : 'Go to Market & Strategy'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className={`mb-5 overflow-x-auto rounded-lg border ${isDark ? 'border-slate-700' : 'border-cyan-200'}`}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className={isDark ? 'bg-slate-900/40 text-slate-300' : 'bg-cyan-50 text-cyan-800'}>
+                    <th className="px-3 py-2 text-start font-medium">{isRTL ? 'التكلفة الشهرية' : 'Monthly cost'}</th>
+                    <th className="px-3 py-2 text-end font-medium">{isRTL ? 'ر.ع' : 'OMR'}</th>
+                    <th className="px-3 py-2 text-start font-medium">{isRTL ? 'المصدر' : 'Source'}</th>
+                  </tr>
+                </thead>
+                <tbody className={isDark ? 'text-slate-200' : 'text-slate-800'}>
+                  {[
+                    { label: isRTL ? 'الموظفون (رواتب وتأمينات وتدريب)' : 'Staff (salaries, insurance, training)', value: monthlySalaries, source: isRTL ? 'المستوى 5' : 'Level 5' },
+                    { label: isRTL ? 'الإيجار' : 'Rent', value: monthlyPropertyCost, source: leaseRent > 0 ? (isRTL ? 'المستوى 2' : 'Level 2') : (isRTL ? 'المستوى 3' : 'Level 3') },
+                    { label: isRTL ? 'المواد الخام' : 'Raw materials', value: monthlyRawMaterials, source: num(physicalData?.totalMonthlyRawMaterialCost) > 0 ? (isRTL ? 'المستوى 4' : 'Level 4') : (isRTL ? 'المستوى 3' : 'Level 3') },
+                    { label: isRTL ? 'المرافق' : 'Utilities', value: monthlyUtilities, source: num(operationsData?.utilities) > 0 ? (isRTL ? 'المستوى 3' : 'Level 3') : (isRTL ? 'تقدير افتراضي' : 'Default estimate') },
+                    { label: isRTL ? 'التأمين' : 'Insurance', value: monthlyInsurance, source: isRTL ? 'هذا المستوى' : 'This level' },
+                  ].map((row) => (
+                    <tr key={row.label} className={`border-t ${isDark ? 'border-slate-700' : 'border-cyan-100'}`}>
+                      <td className="px-3 py-1.5">{row.label}</td>
+                      <td className="px-3 py-1.5 text-end tabular-nums">{Math.round(row.value).toLocaleString('en-US')}</td>
+                      <td className={`px-3 py-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{row.source}</td>
+                    </tr>
+                  ))}
+                  <tr className={`border-t font-semibold ${isDark ? 'border-slate-600' : 'border-cyan-200'}`}>
+                    <td className="px-3 py-1.5">{isRTL ? 'الإجمالي' : 'Total'}</td>
+                    <td className="px-3 py-1.5 text-end tabular-nums">{Math.round(monthlyOperatingCosts).toLocaleString('en-US')}</td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -889,7 +989,7 @@ export function Level6FinancingKPIs() {
                     <>
                       <span className="font-bold">تُحسب تلقائياً:</span> القيم أدناه محسوبة تلقائياً بناءً على:
                       <br />
-                      • المستوى 2 (تكاليف الموقع) • المستوى 3 (الإنتاج والإهلاك) • المستوى 4 (الرواتب) • المستوى 5 (الإيرادات)
+                      • المستوى 2 (التراخيص والإيجار) • المستوى 3 (المرافق) • المستوى 4 (الأصول والمواد والإهلاك) • المستوى 5 (الموظفون) • المستوى 7 (الإيرادات)
                       <br />
                       معدلات النمو: إيرادات {revenueGrowthRate}% | تكاليف {costGrowthRate}%
                     </>
@@ -897,7 +997,7 @@ export function Level6FinancingKPIs() {
                     <>
                       <span className="font-bold">Auto-calculated:</span> Values below are automatically calculated from:
                       <br />
-                      • Level 2 (Property Costs) • Level 3 (Production & Depreciation) • Level 4 (Salaries) • Level 5 (Revenue)
+                      • Level 2 (licences, rent) • Level 3 (utilities) • Level 4 (assets, materials, depreciation) • Level 5 (staff) • Level 7 (revenue)
                       <br />
                       Growth rates: Revenue {revenueGrowthRate}% | Costs {costGrowthRate}%
                     </>

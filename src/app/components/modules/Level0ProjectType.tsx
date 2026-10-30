@@ -5,9 +5,11 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import type { ProjectType } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
+import { buildExampleStudy } from '@/app/data/exampleStudy';
 
 export function Level0ProjectType() {
-  const { setProjectType, setCurrentView, projectTypeData, language, theme } = useYieldX();
+  const { setProjectType, setCurrentView, projectTypeData, language, theme, updateModuleData } = useYieldX();
+  const [confirmExample, setConfirmExample] = useState(false);
   const [selectedType, setSelectedType] = useState<ProjectType | null>(projectTypeData?.type || null);
   const [customProjectName, setCustomProjectName] = useState<string>(projectTypeData?.customName || '');
 
@@ -63,6 +65,19 @@ export function Level0ProjectType() {
 
   const handleSelectType = (type: ProjectType) => {
     setSelectedType(type);
+  };
+
+  // Fill every level with a complete example study (for demos and for exploring the platform).
+  const handleLoadExample = () => {
+    if (!confirmExample) {
+      setConfirmExample(true);
+      return;
+    }
+    const example = buildExampleStudy(language === 'ar' ? 'ar' : 'en');
+    setProjectType(example.projectType, example.projectName);
+    Object.entries(example.moduleData).forEach(([key, data]) => updateModuleData(key, data));
+    setConfirmExample(false);
+    setCurrentView('module-6');
   };
 
   const handleContinue = () => {
@@ -248,6 +263,26 @@ export function Level0ProjectType() {
           >
             {isRTL ? 'متابعة إلى المستوى 1' : 'Continue to Level 1'}
           </Button>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLoadExample}
+              className={`text-sm underline underline-offset-4 ${isDark ? 'text-purple-200 hover:text-white' : 'text-purple-700 hover:text-purple-900'}`}
+            >
+              {confirmExample
+                ? (isRTL ? 'تأكيد: استبدال بيانات الدراسة الحالية بالمثال' : 'Confirm: replace the current study data with the example')
+                : (isRTL ? 'جرّب دراسة مثال كاملة (كشك قهوة في نزوى)' : 'Try a complete example study (coffee kiosk in Nizwa)')}
+            </button>
+            {confirmExample && (
+              <button
+                type="button"
+                onClick={() => setConfirmExample(false)}
+                className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+              >
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </button>
+            )}
+          </div>
         </motion.div>
       </div>
     </div>

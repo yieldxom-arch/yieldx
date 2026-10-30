@@ -25,15 +25,16 @@ export interface FinancialProjectionRow {
   cumulativeCashFlow: string;
 }
 
+// Must match the journey routing (module-0 … module-7) and the moduleData keys.
 const LEVEL_NAMES: Record<number, { ar: string; en: string }> = {
   0: { ar: 'اختيار نوع المشروع', en: 'Project Type Selection' },
-  1: { ar: 'تحليل السوق', en: 'Market Analysis' },
-  2: { ar: 'المتطلبات القانونية والتراخيص', en: 'Legal Requirements & Licenses' },
+  1: { ar: 'الهوية والملكية', en: 'Identity & Ownership' },
+  2: { ar: 'الإطار القانوني والتنظيمي (التراخيص وعقود الإيجار)', en: 'Legal & Regulatory Framework (licences, leases)' },
   3: { ar: 'المتطلبات التشغيلية', en: 'Operational Requirements' },
-  4: { ar: 'إدارة الأصول', en: 'Asset Management' },
-  5: { ar: 'تخطيط الموظفين', en: 'Staff Planning' },
-  6: { ar: 'التخطيط المالي', en: 'Financial Planning' },
-  7: { ar: 'معلومات المساهمين وهيكل الملكية', en: 'Shareholder Information & Ownership Structure' },
+  4: { ar: 'الموارد المادية والفنية (الأصول والمواد الخام والإهلاك)', en: 'Physical & Technical Resources (assets, raw materials, depreciation)' },
+  5: { ar: 'الموارد البشرية والتنظيمية', en: 'Human & Organizational Resources' },
+  6: { ar: 'التمويل والمؤشرات المالية', en: 'Financing & Financial KPIs' },
+  7: { ar: 'السوق والاستراتيجية (المنافسون والمنتجات وتحليل SWOT)', en: 'Market & Strategy (competitors, products, SWOT)' },
 };
 
 // ─── Privacy: strip personal identifiers before anything leaves the browser ───
