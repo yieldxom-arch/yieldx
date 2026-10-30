@@ -401,6 +401,43 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
                       </div>
                     </div>
                   )}
+                  {l6.omanChecks && (
+                    <div style={{ marginTop: '10px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '12px', color: '#14532d' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                        {isRTL ? `الملاءمة لعُمان (القواعد حتى ${l6.omanChecks.checkedOn})` : `Oman fit (rules as of ${l6.omanChecks.checkedOn})`}
+                      </div>
+                      {l6.scenario && toNum(l6.scenario.calendarEffect) !== 0 && (
+                        <div>
+                          {isRTL
+                            ? `أثر التقويم العُماني (رمضان والأعياد والمواسم) على نتيجة الخطة: ${money(toNum(l6.scenario.calendarEffect))}${l6.openingMonth ? ` · الافتتاح: ${l6.openingMonth}` : ''}`
+                            : `Omani calendar effect (Ramadan, Eids, seasons) on the plan's result: ${money(toNum(l6.scenario.calendarEffect))}${l6.openingMonth ? ` · opening: ${l6.openingMonth}` : ''}`}
+                        </div>
+                      )}
+                      <div>
+                        {l6.omanChecks.vatMandatoryMonth
+                          ? (isRTL ? `ضريبة القيمة المضافة: التسجيل إلزامي من الشهر ${l6.omanChecks.vatMandatoryMonth}` : `VAT: registration mandatory from month ${l6.omanChecks.vatMandatoryMonth}`)
+                          : (isRTL ? 'ضريبة القيمة المضافة: لا يلزم التسجيل خلال فترة الدراسة' : 'VAT: registration not required within the study period')}
+                        {l6.omanChecks.taxRateYear1 !== null && (isRTL
+                          ? ` · ضريبة الدخل في السنة 1: ${Math.round(toNum(l6.omanChecks.taxRateYear1) * 100)}% · إجمالي الضريبة: ${money(toNum(l6.omanChecks.totalTax))}`
+                          : ` · Income tax year 1: ${Math.round(toNum(l6.omanChecks.taxRateYear1) * 100)}% · total tax: ${money(toNum(l6.omanChecks.totalTax))}`)}
+                      </div>
+                      {Array.isArray(l6.omanChecks.financing) && (
+                        <div>
+                          {(isRTL ? 'اختبار النجاة المالية: ' : 'Financing survival: ') + l6.omanChecks.financing.map((f: any) => {
+                            const name = f.id === 'own' ? (isRTL ? 'تمويل ذاتي' : 'own money') : f.id === 'plan' ? (isRTL ? 'خطة التمويل' : 'your plan') : (isRTL ? 'عرض تنموي' : 'development offer');
+                            const ok = f.firstNegativeMonth === null;
+                            const tough = f.toughFirstNegativeMonth === null;
+                            return `${name}: ${ok ? (isRTL ? 'يبقى موجباً' : 'stays positive') : (isRTL ? `ينفد النقد في الشهر ${f.firstNegativeMonth}` : `runs out in month ${f.firstNegativeMonth}`)}${tough ? '' : (isRTL ? ` (مع إيرادات أقل 20%: الشهر ${f.toughFirstNegativeMonth})` : ` (with 20% less revenue: month ${f.toughFirstNegativeMonth})`)}`;
+                          }).join(' · ')}
+                        </div>
+                      )}
+                      <div>
+                        {isRTL
+                          ? `الأثر الوطني: ${toNum(l6.omanChecks.impactScore)}/100 · التعمين ${Math.round(toNum(l6.omanChecks.omanizationRate))}% · إنفاق محلي سنوي ${money(toNum(l6.omanChecks.annualLocalSpend))} · إيرادات عامة سنوية ${money(toNum(l6.omanChecks.annualPublicContribution))}`
+                          : `National impact: ${toNum(l6.omanChecks.impactScore)}/100 · Omanization ${Math.round(toNum(l6.omanChecks.omanizationRate))}% · local spending ${money(toNum(l6.omanChecks.annualLocalSpend))}/yr · public revenue ${money(toNum(l6.omanChecks.annualPublicContribution))}/yr`}
+                      </div>
+                    </div>
+                  )}
                 </SectionCard>
               )}
 

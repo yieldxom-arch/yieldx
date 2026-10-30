@@ -34,7 +34,8 @@ export function Level4HumanResources() {
       : [{ id: '1', position: '', count: '', nationality: 'omani', monthlySalary: '' }]
   );
   
-  const [socialInsuranceRate] = useState(15); // 15% for Omani employees
+  // Employer social protection contribution for Omani staff: 14.5% (Social Protection Fund, since 19 July 2026; see src/lib/oman/rules.ts).
+  const [socialInsuranceRate] = useState(14.5);
   const [healthInsurancePerExpat, setHealthInsurancePerExpat] = useState(savedData?.healthInsurancePerExpat || '100');
   const [trainingBudgetPercent] = useState(5); // 5% of total salaries
   
@@ -476,7 +477,7 @@ export function Level4HumanResources() {
               }`}>
                 <div className="flex-1">
                   <div className={isDark ? 'text-orange-200' : 'text-orange-700'}>
-                    {isRTL ? 'التأمينات الاجتماعية (15% للعمانيين):' : 'Social Insurance (15% for Omanis):'}
+                    {isRTL ? 'الحماية الاجتماعية (14.5% للعمانيين):' : 'Social protection (14.5% for Omanis):'}
                   </div>
                   <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-black font-medium'}`}>
                     {isRTL ? 'شهرياً' : 'Monthly'}: {socialInsuranceMonthly.toFixed(2)} {isRTL ? 'ر.ع' : 'OMR'}

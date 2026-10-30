@@ -12,7 +12,7 @@ import type { ProjectType } from '@/app/contexts/YieldXContext';
 type Lang = 'ar' | 'en';
 
 const DEPRECIATION_RATES = { building: 5, machinery: 10, furniture: 20, vehicle: 25, other: 10 } as const;
-const SOCIAL_INSURANCE_RATE = 15; // % of Omani salaries (same as Level 5)
+const SOCIAL_INSURANCE_RATE = 14.5; // % of Omani salaries (same as Level 5)
 const TRAINING_BUDGET_PERCENT = 5; // % of annual salaries (same as Level 5)
 const HEALTH_INSURANCE_PER_EXPAT = 100; // OMR per year (Level 5 default)
 

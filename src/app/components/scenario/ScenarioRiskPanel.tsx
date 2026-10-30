@@ -24,10 +24,15 @@ export interface ScenarioSummary {
   breakEvenMonthP50: number | null;
   topDriver: string;
   topDriverAr: string;
+  /** Change in the plan's result caused by the Omani calendar alone (0 if no seasonality). */
+  calendarEffect: number;
+  calendarBreakEvenMonth: number | null;
 }
 
 interface Props {
   base: BaseProjection | null;
+  /** Monthly demand multipliers from the Omani calendar. */
+  seasonality?: number[];
   language: 'ar' | 'en';
   isDark: boolean;
   onResult?: (summary: ScenarioSummary) => void;
@@ -69,7 +74,7 @@ function hbar(x0: number, x1: number, y: number, h: number, roundLeft: boolean, 
   } H${x0 + rl} ${rl ? `Q${x0},${y + h} ${x0},${y + h - rl}` : ''} V${y + rl} ${rl ? `Q${x0},${y} ${x0 + rl},${y}` : ''} Z`;
 }
 
-export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
+export function ScenarioRiskPanel({ base, seasonality, language, isDark, onResult }: Props) {
   const isRTL = language === 'ar';
   const [result, setResult] = useState<ScenarioResult | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -79,7 +84,7 @@ export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
     ? { s1: '#3987e5', plan: '#d95926', down: '#e66767', grid: 'rgba(255,255,255,0.08)', axis: 'rgba(255,255,255,0.22)', muted: '#94a3b8', text: '#f1f5f9', ring: '#0f172a' }
     : { s1: '#2a78d6', plan: '#eb6834', down: '#e34948', grid: '#e2e8f0', axis: '#cbd5e1', muted: '#64748b', text: '#0f172a', ring: '#ffffff' };
 
-  const baseKey = base ? JSON.stringify(base) : '';
+  const baseKey = base ? JSON.stringify(base) + '|' + (seasonality ? seasonality.map((v) => v.toFixed(4)).join(',') : '') : '';
 
   useEffect(() => {
     if (!base) {
@@ -94,6 +99,7 @@ export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
           iterations: years > 5 ? 4000 : 8000,
           seed: SEED,
           annualDiscountRate: 0.1,
+          seasonality,
         });
         setResult(r);
         onResult?.({
@@ -110,6 +116,8 @@ export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
           breakEvenMonthP50: r.breakEvenMonth ? Math.round(r.breakEvenMonth.p50) : null,
           topDriver: r.sensitivity[0]?.label ?? '',
           topDriverAr: r.sensitivity[0]?.labelAr ?? '',
+          calendarEffect: r.calendarCase.net - r.baseCase.net,
+          calendarBreakEvenMonth: r.calendarCase.breakEvenMonth,
         });
       } catch (e) {
         console.error('Scenario engine error', e);
@@ -208,6 +216,14 @@ export function ScenarioRiskPanel({ base, language, isDark, onResult }: Props) {
               </div>
             </div>
           </div>
+
+          {seasonality && Math.abs(result.calendarCase.net - result.baseCase.net) > 0.5 && (
+            <div className={`mb-4 p-4 rounded-lg border ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+              {isRTL
+                ? `أثر التقويم العُماني وحده: ${sfmt(result.calendarCase.net - result.baseCase.net)} ر.ع على نتيجة الخطة، والتعادل ${result.calendarCase.breakEvenMonth ? 'في الشهر ' + result.calendarCase.breakEvenMonth : 'خارج الفترة'} بدلاً من ${result.baseCase.breakEvenMonth ? 'الشهر ' + result.baseCase.breakEvenMonth : 'خارج الفترة'}. دراسة الجدوى العادية لا ترى هذا الفرق.`
+                : `The Omani calendar alone changes the plan's result by ${sfmt(result.calendarCase.net - result.baseCase.net)} OMR, with break-even in ${result.calendarCase.breakEvenMonth ? 'month ' + result.calendarCase.breakEvenMonth : 'no month within the horizon'} instead of ${result.baseCase.breakEvenMonth ? 'month ' + result.baseCase.breakEvenMonth : 'none'}. A standard feasibility study doesn't see this.`}
+            </div>
+          )}
 
           {top && (
             <div className={`mb-6 p-4 rounded-lg border ${isDark ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-100' : 'bg-cyan-50 border-cyan-200 text-cyan-900'}`}>
@@ -348,7 +364,8 @@ function Tornado({
   colors: { s1: string; down: string; axis: string; muted: string; text: string };
 }) {
   const rows = result.sensitivity;
-  const base = result.baseCase.net;
+  // Sensitivity runs include the calendar, so bars are centred on the plan with the calendar applied.
+  const base = result.calendarCase.net;
   const W = 520, rowH = 36, m = { l: 150, r: 60, t: 22, b: 6 }, pad = 44;
   const H = m.t + rows.length * rowH + m.b;
   const lo = Math.min(base, ...rows.map((s) => Math.min(s.netAtLow, s.netAtHigh)));

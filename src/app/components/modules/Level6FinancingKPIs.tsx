@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { DollarSign, TrendingUp, Calculator, BarChart3, ArrowLeft, Save, AlertCircle, CheckCircle2, PieChart, Shield, Plus, Trash2 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
@@ -8,7 +8,11 @@ import { Button } from '@/app/components/ui/button';
 import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
 import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
 import { ScenarioRiskPanel } from '@/app/components/scenario/ScenarioRiskPanel';
-import type { BaseProjection } from '@/lib/scenario';
+import { buildSeasonality, defaultPattern, type BaseProjection, type DemandPattern } from '@/lib/scenario';
+import { OmanCalendarCard } from '@/app/components/scenario/OmanCalendarCard';
+import { OmanChecksPanel, type DevTerms } from '@/app/components/scenario/OmanChecksPanel';
+import { defaultVisionSector, type Vision2040Sector } from '@/lib/oman/rules';
+import { getOmanizationRequirement } from '@/app/config/sectorConfig';
 
 interface Insurance {
   id: string;
@@ -46,6 +50,17 @@ export function Level6FinancingKPIs() {
   const [loanTermYears, setLoanTermYears] = useState(savedData?.loanTermYears || '5');
   const [revenueGrowthRate, setRevenueGrowthRate] = useState(savedData?.revenueGrowthRate || '10');
   const [costGrowthRate, setCostGrowthRate] = useState(savedData?.costGrowthRate || '5');
+  // Omani calendar, Vision 2040 sector and financing-offer settings.
+  const [openingMonth, setOpeningMonth] = useState<string>(() => {
+    if (savedData?.openingMonth) return savedData.openingMonth;
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [demandPattern, setDemandPattern] = useState<DemandPattern>(savedData?.demandPattern || defaultPattern(projectTypeData?.type));
+  const [visionSector, setVisionSector] = useState<Vision2040Sector>(savedData?.visionSector || defaultVisionSector(projectTypeData?.type));
+  const [devTerms, setDevTerms] = useState<DevTerms>(savedData?.devTerms || { rate: savedData?.interestRate || '5', grace: '12', term: savedData?.loanTermYears || '5' });
+  const [taxIncomeLimit, setTaxIncomeLimit] = useState<string>(savedData?.taxIncomeLimit || '100000');
   // Used only when Market & Strategy (Level 7) has no products yet.
   const [manualMonthlyRevenue, setManualMonthlyRevenue] = useState(savedData?.manualMonthlyRevenue || '');
   
@@ -256,6 +271,13 @@ export function Level6FinancingKPIs() {
   const currentRatio = calculateCurrentRatio();
   const debtToEquity = calculateDebtToEquity();
 
+  // Omani calendar: monthly demand multipliers from the opening month.
+  const seasonality = useMemo(() => {
+    const [y, m] = openingMonth.split('-').map((v: string) => parseInt(v, 10));
+    if (!y || !m) return null;
+    return buildSeasonality(y, m, projectionYears * 12, demandPattern);
+  }, [openingMonth, demandPattern, projectionYears]);
+
   // Inputs for the Monte Carlo risk simulation, taken from the same figures as the table above.
   const scenarioBase: BaseProjection | null = annualRevenue > 0
     ? (() => {
@@ -269,11 +291,21 @@ export function Level6FinancingKPIs() {
           costs: [
             { label: 'Raw materials', type: 'variable' as const, yearly: years.map(y => monthlyRawMaterials * 12 * Math.pow(1 + costGrowth, y)) },
             { label: 'Salaries, rent, insurance, utilities', type: 'fixed' as const, yearly: years.map(y => fixedMonthly * 12 * Math.pow(1 + costGrowth, y)) },
-            { label: 'Loan interest', type: 'fixed' as const, yearly: years.map(() => annualInterest) },
+            { label: 'Loan interest', type: 'fixed' as const, yearly: years.map(() => annualInterest), financing: true },
           ],
         };
       })()
     : null;
+
+  const owners: any[] = (moduleData['level1']?.owners || []).filter((o: any) => o?.name);
+  const omaniOwned: boolean | null = owners.length ? owners.every((o: any) => o.nationality === 'omani') : null;
+  const hrEmployees: any[] = hrData?.employees || [];
+  const monthlyOmaniSalaries = hrEmployees
+    .filter((e: any) => e.nationality === 'omani')
+    .reduce((sum: number, e: any) => sum + (parseInt(e.count) || 0) * num(e.monthlySalary), 0);
+  const omaniEmployeeCount = num(hrData?.omaniEmployees);
+  const totalEmployeeCount = num(hrData?.totalEmployees);
+  const licenceCount = (legalData?.licenses || []).filter((l: any) => l?.name).length;
 
   // Save data automatically
   const saveCurrentData = () => {
@@ -287,6 +319,11 @@ export function Level6FinancingKPIs() {
       costGrowthRate,
       manualMonthlyRevenue,
       monthlyRevenue,
+      openingMonth,
+      demandPattern,
+      visionSector,
+      devTerms,
+      taxIncomeLimit,
       revenueSource: revenueFromMarket ? 'market' : 'manual',
       totalInvestment,
       projections,
@@ -319,7 +356,7 @@ export function Level6FinancingKPIs() {
 
   useEffect(() => {
     saveCurrentData();
-  }, [equityAmount, loanAmount, interestRate, gracePeriodMonths, loanTermYears, revenueGrowthRate, costGrowthRate, insurances, manualMonthlyRevenue, marketMonthlyRevenue]);
+  }, [equityAmount, loanAmount, interestRate, gracePeriodMonths, loanTermYears, revenueGrowthRate, costGrowthRate, insurances, manualMonthlyRevenue, marketMonthlyRevenue, openingMonth, demandPattern, visionSector, devTerms, taxIncomeLimit]);
 
   // Validate form
   const validateForm = () => {
@@ -1236,12 +1273,58 @@ export function Level6FinancingKPIs() {
           </Card>
         </motion.div>
 
-        {/* Monte Carlo risk simulation */}
+        {/* Omani calendar settings */}
+        <OmanCalendarCard
+          language={language as 'ar' | 'en'}
+          isDark={isDark}
+          openingMonth={openingMonth}
+          onOpeningMonth={setOpeningMonth}
+          pattern={demandPattern}
+          onPattern={setDemandPattern}
+          sector={visionSector}
+          onSector={setVisionSector}
+          seasonality={seasonality}
+        />
+
+        {/* Monte Carlo risk simulation (with the Omani calendar) */}
         <ScenarioRiskPanel
           base={scenarioBase}
+          seasonality={seasonality?.multipliers}
           language={language as 'ar' | 'en'}
           isDark={isDark}
           onResult={(summary) => updateModuleData('level6', { scenario: summary })}
+        />
+
+        {/* Omani rules, financing survival and national impact */}
+        <OmanChecksPanel
+          language={language as 'ar' | 'en'}
+          isDark={isDark}
+          base={scenarioBase}
+          seasonality={seasonality?.multipliers}
+          totalInvestment={totalInvestment}
+          upfrontSpend={fixedAssetsCost + preOperatingCosts}
+          equity={equity}
+          loan={loan}
+          interestRatePct={num(interestRate)}
+          graceMonths={num(gracePeriodMonths)}
+          termYears={num(loanTermYears)}
+          devTerms={devTerms}
+          onDevTerms={setDevTerms}
+          incomeLimit={taxIncomeLimit}
+          onIncomeLimit={setTaxIncomeLimit}
+          annualRevenue={projections.slice(0, projectionYears).map((p: any) => p.revenue)}
+          annualProfit={projections.slice(0, projectionYears).map((p: any) => p.profit)}
+          totalEmployees={totalEmployeeCount}
+          omaniEmployees={omaniEmployeeCount}
+          omanizationTarget={getOmanizationRequirement(projectTypeData?.type ?? null)}
+          monthlyOmaniSalaries={monthlyOmaniSalaries}
+          monthlyRent={monthlyPropertyCost}
+          monthlyUtilities={monthlyUtilities}
+          monthlyOperatingCosts={monthlyOperatingCosts}
+          omaniOwned={omaniOwned}
+          sector={visionSector}
+          licenceCount={licenceCount}
+          onSummary={(summary) => updateModuleData('level6', { omanChecks: summary })}
         />
 
         {/* Validation Errors */}
