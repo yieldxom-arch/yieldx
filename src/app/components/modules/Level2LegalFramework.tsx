@@ -205,6 +205,7 @@ export function Level2LegalFramework() {
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(2, currentLevel.maxXp, true);
         }
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 2 } }));
 
         // AI feedback
         setIsLoadingAi(true);

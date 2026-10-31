@@ -598,6 +598,8 @@ export function SmartLocationAnalysis() {
               <CompetitorAnalysisMap
                 location={location}
                 sector={sector}
+                businessIdea={String(moduleData['level1']?.projectIdea || moduleData['level1']?.productDescription || '')}
+                businessName={businessName}
                 language={language}
                 isDark={isDark}
               />

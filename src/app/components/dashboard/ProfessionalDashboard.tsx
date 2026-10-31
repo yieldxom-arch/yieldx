@@ -614,10 +614,10 @@ export function ProfessionalDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-900 dark:text-white text-sm">
-                    {language === 'ar' ? 'مستشارو الأعمال الذكيون' : 'AI Business Advisors'}
+                    {language === 'ar' ? 'مستشار YieldX' : 'YieldX Advisor'}
                   </p>
                   <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-                    {language === 'ar' ? 'أطلس (CFO) · نوفا (CMO) · أوريون (CEO)' : 'Atlas (CFO) · Nova (CMO) · Orion (CEO)'}
+                    {language === 'ar' ? 'يراجع دراستك كاملة ويجيب عن أسئلتك' : 'Reviews your whole study and answers your questions'}
                   </p>
                 </div>
                 <Brain className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform shrink-0" />

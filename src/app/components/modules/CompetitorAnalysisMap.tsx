@@ -405,7 +405,7 @@ function ScoreRing({ value, color, label, labelAr, isRTL }: { value: number; col
 // ═══════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
-export function CompetitorAnalysisMap({ location, sector, businessIdea, businessName, language, isDark, onCompetitorsChange }: Props) {
+export function CompetitorAnalysisMap({ location = '', sector, businessIdea = '', businessName = '', language, isDark, onCompetitorsChange }: Props) {
   const isRTL = language === 'ar';
 
   type LoadState = 'idle' | 'geocoding' | 'fetching' | 'done' | 'error' | 'no-idea' | 'no-results';

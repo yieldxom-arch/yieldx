@@ -188,20 +188,12 @@ export function WorkspaceManager() {
                         {t.individual}
                       </Button>
                       <Button
-                        variant={selectedMode === 'group' ? 'default' : 'outline'}
-                        onClick={() => setSelectedMode('group')}
+                        variant={selectedMode === 'team' ? 'default' : 'outline'}
+                        onClick={() => setSelectedMode('team')}
                         className="w-full"
                       >
                         <Users className="w-4 h-4 mr-2" />
                         {t.group}
-                      </Button>
-                      <Button
-                        variant={selectedMode === 'classroom' ? 'default' : 'outline'}
-                        onClick={() => setSelectedMode('classroom')}
-                        className="w-full"
-                      >
-                        <Folder className="w-4 h-4 mr-2" />
-                        {t.classroom}
                       </Button>
                     </div>
                   </div>
@@ -249,8 +241,7 @@ export function WorkspaceManager() {
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                           {workspace.mode === 'individual' && <User className="w-6 h-6 text-white" />}
-                          {workspace.mode === 'group' && <Users className="w-6 h-6 text-white" />}
-                          {workspace.mode === 'classroom' && <Folder className="w-6 h-6 text-white" />}
+                          {workspace.mode === 'team' && <Users className="w-6 h-6 text-white" />}
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-900 dark:text-white">{workspace.name}</h3>
@@ -279,7 +270,7 @@ export function WorkspaceManager() {
                       <Button
                         className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                         onClick={() => {
-                          setCurrentWorkspace(workspace.id);
+                          setCurrentWorkspace(workspace);
                           setCurrentView('workspace');
                         }}
                       >
@@ -368,7 +359,7 @@ export function WorkspaceManager() {
                     <Button
                       className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                       onClick={() => {
-                        setCurrentWorkspace(workspace.id);
+                        setCurrentWorkspace(workspace);
                         setCurrentView('workspace');
                       }}
                     >

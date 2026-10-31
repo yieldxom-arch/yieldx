@@ -479,7 +479,7 @@ export function LevelGridMap() {
               <motion.div
                 whileHover={capstoneUnlocked ? { scale: 1.02, y: -5 } : {}}
                 className={`relative ${capstoneUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                onClick={() => capstoneUnlocked && setCurrentView('business-plan')}
+                onClick={() => capstoneUnlocked && setCurrentView('full-study')}
               >
                 <Card
                   className={`p-8 relative overflow-hidden transition-all duration-500 border-2 ${

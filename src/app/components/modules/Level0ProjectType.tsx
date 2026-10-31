@@ -8,7 +8,7 @@ import { Button } from '@/app/components/ui/button';
 import { buildExampleStudy } from '@/app/data/exampleStudy';
 
 export function Level0ProjectType() {
-  const { setProjectType, setCurrentView, projectTypeData, language, theme, updateModuleData } = useYieldX();
+  const { setProjectType, setCurrentView, projectTypeData, language, theme, updateModuleData, levels, updateLevelProgress } = useYieldX();
   const [confirmExample, setConfirmExample] = useState(false);
   const [selectedType, setSelectedType] = useState<ProjectType | null>(projectTypeData?.type || null);
   const [customProjectName, setCustomProjectName] = useState<string>(projectTypeData?.customName || '');
@@ -76,6 +76,8 @@ export function Level0ProjectType() {
     const example = buildExampleStudy(language === 'ar' ? 'ar' : 'en');
     setProjectType(example.projectType, example.projectName);
     Object.entries(example.moduleData).forEach(([key, data]) => updateModuleData(key, data));
+    // the example is a complete study, so every level counts as finished
+    levels.forEach(l => updateLevelProgress(l.levelId, l.maxXp, true));
     setConfirmExample(false);
     setCurrentView('module-6');
   };

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { DollarSign, TrendingUp, Calculator, BarChart3, ArrowLeft, Save, AlertCircle, CheckCircle2, PieChart, Shield, Plus, Trash2 } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
-import { generateCFOInsights } from '@/lib/copilot-ai';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
@@ -397,39 +396,9 @@ export function Level6FinancingKPIs() {
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(6, currentLevel.maxXp, true);
         }
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 6 } }));
 
-        void (async () => {
-          try {
-            const insights = await generateCFOInsights(
-              {
-                projectTypeData,
-                studyModeData,
-                moduleData,
-                enhancedSWOT,
-                financialKPIs,
-                bmcData,
-                oman2040,
-              },
-              language
-            );
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-generated', {
-              detail: {
-                role: 'CFO',
-                messages: insights,
-              },
-            }));
-          } catch (error) {
-            console.error('Atlas background generation failed', error);
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-error', {
-              detail: {
-                role: 'CFO',
-                error: language === 'ar'
-                  ? 'فشل إنشاء الرؤى المالية في الخلفية. حاول مرة أخرى.'
-                  : 'Financial insights generation failed in the background. Please try again.',
-              },
-            }));
-          }
-        })();
+        // The YieldX Advisor reviews the whole study when it is opened.
 
         // YieldX AI level feedback (includes 3-year financial projection for Level 6)
         getLevelAiFeedback(6, moduleData['level6'] || {}, language as 'ar' | 'en')

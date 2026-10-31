@@ -177,10 +177,8 @@ export function Level4HumanResources() {
           setIsLoadingAi(true);
         }
         
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-5');
-        }, 1500);
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 5 } }));
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };

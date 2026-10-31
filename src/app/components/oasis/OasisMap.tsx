@@ -132,7 +132,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
 
   const openSelected = () => {
     if (!selState || selState.status === 'locked') return;
-    setCurrentView(selState.levelId === -1 ? 'business-plan' : `module-${selState.levelId}`);
+    setCurrentView(selState.levelId === -1 ? 'full-study' : `module-${selState.levelId}`);
   };
 
   const statusText = (s: StationState) =>

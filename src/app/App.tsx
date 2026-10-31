@@ -19,8 +19,6 @@ import { OrganizationDashboard } from '@/app/components/dashboard/OrganizationDa
 import { Toaster } from '@/app/components/notifications/Toaster';
 import { WorkspaceManager } from '@/app/components/workspace/WorkspaceManager';
 import { StudentWorkspaceView } from '@/app/components/workspace/StudentWorkspaceView';
-import { TeacherDashboard } from '@/app/components/teacher/TeacherDashboard';
-import { ChatBot } from '@/app/components/chatbot/ChatBot';
 import { SUBSCRIPTION_PLANS } from '@/app/data/subscriptionData';
 import { ShortsLibrary } from '@/app/components/video-library/ShortsLibrary';
 import { Leaderboard } from '@/app/components/leaderboard/Leaderboard';
@@ -53,6 +51,8 @@ import {
 import BusinessPlanWizard from '@/app/components/business-plan/BusinessPlanWizard';
 // Revolutionary Features
 import { CopilotBridge } from '@/app/components/ai-copilot/CopilotBridge';
+import { LevelCompleteBar } from '@/app/components/journey/LevelCompleteBar';
+import { FullStudyPage } from '@/app/components/journey/FullStudyPage';
 import { FeaturesShowcase } from '@/app/components/demo/FeaturesShowcase';
 import { ColonyPage } from '@/app/components/pages/ColonyPage';
 import { WarpDrivePage } from '@/app/components/pages/WarpDrivePage';
@@ -114,7 +114,6 @@ function ConnectivityBanner() {
 function AppContent() {
   const { currentView, user, language } = useYieldX();
   const currentSubscription = SUBSCRIPTION_PLANS.find(plan => plan.id === user?.subscriptionTier);
-  const showChatBot = !!currentSubscription?.hasAIAssistant;
 
   // Show migration helper in console
   React.useEffect(() => {
@@ -143,10 +142,13 @@ function AppContent() {
         if (user?.role === 'lecturer') return <TeacherMainDashboard />;
         if (user?.role === 'organization') return <OrganizationDashboard />;
         return <ProfessionalDashboard />;
+      case 'workspace':
+        return user?.role === 'lecturer' ? <TeacherMainDashboard /> : <StudentWorkspaceView />;
       case 'workspaces':
         return user?.role === 'lecturer' ? <WorkspaceManager /> : <StudentWorkspaceView />;
       case 'teacher-dashboard':
-        return <TeacherDashboard />;
+        // the old TeacherDashboard component was never finished (renders nothing)
+        return <TeacherMainDashboard />;
       case 'video-library':
         return <ShortsLibrary />;
       case 'leaderboard':
@@ -155,6 +157,8 @@ function AppContent() {
         return <MessagingCenter />;
       case 'professional-consultation':
         return <ProfessionalConsultation />;
+      case 'full-study':
+        return <FullStudyPage />;
       case 'business-plan':
         return <BusinessPlanWizard />;
       // Revolutionary Features Views
@@ -255,6 +259,7 @@ function AppContent() {
     <div className="min-h-screen">
       {renderView()}
       {/* Show AI Copilot Bridge when logged in */}
+      <LevelCompleteBar />
       {user && (
         <CopilotBridge
           language={language}
@@ -262,7 +267,6 @@ function AppContent() {
           onActionTaken={(msgId, actionId) => console.log('Action taken:', msgId, actionId)}
         />
       )}
-      {showChatBot && <ChatBot />}
     </div>
   );
 }

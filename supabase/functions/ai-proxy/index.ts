@@ -3,10 +3,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Edge Function: ai-proxy
 // ─────────────────────────────────────────────────────────────────────────────
-// Server-side gateway for every Claude call made by the web app.
+// Server-side gateway for every AI call made by the web app: level feedback,
+// the final report, and the YieldX Advisor (review + chat).
 // 1. Only signed-in YieldX users can call it (Supabase JWT verified).
 // 2. The Anthropic API key lives only here, as an edge-function secret.
 // 3. Prompt size and output length are capped to limit abuse and cost.
+//
+// Body: { system?, maxTokens?, prompt }            single question
+//    or { system?, maxTokens?, messages: [{role, content}] }   conversation
 //
 // Deploy:  supabase functions deploy ai-proxy
 // Secrets: supabase secrets set ANTHROPIC_API_KEY=<key>
@@ -59,9 +63,29 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const prompt = typeof body?.prompt === "string" ? body.prompt : "";
   const system = typeof body?.system === "string" ? body.system : "";
-  if (!prompt || prompt.length + system.length > MAX_INPUT_CHARS) {
+  let messages: { role: "user" | "assistant"; content: string }[] = [];
+  if (Array.isArray(body?.messages)) {
+    messages = body.messages
+      .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string" && m.content.trim())
+      .slice(-12)
+      .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+    while (messages.length && messages[0].role !== "user") messages.shift();
+    // merge consecutive turns from the same side
+    messages = messages.reduce((acc, m) => {
+      const last = acc[acc.length - 1];
+      if (last && last.role === m.role) last.content += "\n\n" + m.content;
+      else acc.push({ ...m });
+      return acc;
+    }, [] as { role: "user" | "assistant"; content: string }[]);
+    if (!messages.length || messages[messages.length - 1].role !== "user") {
+      return json({ error: "The conversation must end with a user message" }, 400);
+    }
+  } else if (typeof body?.prompt === "string" && body.prompt) {
+    messages = [{ role: "user", content: body.prompt }];
+  }
+  const inputChars = system.length + messages.reduce((n, m) => n + m.content.length, 0);
+  if (!messages.length || inputChars > MAX_INPUT_CHARS) {
     return json({ error: "Prompt missing or too long" }, 400);
   }
   const maxTokens = Math.min(MAX_OUTPUT_TOKENS, Math.max(64, Number(body?.maxTokens) || 1024));
@@ -87,7 +111,7 @@ Deno.serve(async (req: Request) => {
         model: MODEL,
         max_tokens: maxTokens,
         system,
-        messages: [{ role: "user", content: prompt }],
+        messages,
       }),
     });
 
