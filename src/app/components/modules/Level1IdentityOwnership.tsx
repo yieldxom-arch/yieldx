@@ -5,6 +5,8 @@ import { useYieldX } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { AINameChecker } from '@/app/components/naming/AINameChecker';
+import { checkTradeName, type NameCheckRecord } from '@/lib/oman/tradeNames';
+import { registerNameInRegistry } from '@/lib/oman/nameRegistry';
 import { getSectorConfig } from '@/app/config/sectorConfig';
 import { getLevelAiFeedback, type AiFeedback } from '@/lib/ai';
 import { AiFeedbackCard } from '@/app/components/ai/AiFeedbackCard';
@@ -19,7 +21,7 @@ interface Owner {
 }
 
 export function Level1IdentityOwnership() {
-  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, projectTypeData, theme } = useYieldX();
+  const { moduleData, updateModuleData, language, setCurrentView, levels, updateLevelProgress, projectTypeData, theme, activeSavedProjectId } = useYieldX();
   
   const isRTL = language === 'ar';
   const isDark = theme === 'dark';
@@ -36,6 +38,7 @@ export function Level1IdentityOwnership() {
       ? savedData.owners
       : [{ id: '1', name: '', nationality: 'omani', age: '', sharePercentage: '', experience: 'beginner' }]
   );
+  const [nameCheck, setNameCheck] = useState<NameCheckRecord | null>(savedData?.nameCheck || null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(moduleData['level1']?.aiFeedback || null);
@@ -63,13 +66,14 @@ export function Level1IdentityOwnership() {
       projectStatus,
       location,
       owners,
+      nameCheck,
     };
     updateModuleData('level1', data);
   };
 
   useEffect(() => {
     saveCurrentData();
-  }, [businessName, projectIdea, productDescription, projectStatus, location, owners]);
+  }, [businessName, projectIdea, productDescription, projectStatus, location, owners, nameCheck]);
 
   // Validate form
   const validateForm = () => {
@@ -144,6 +148,13 @@ export function Level1IdentityOwnership() {
         setTimeout(() => setSaveStatus('idle'), 4000);
       } else {
         setSaveStatus('saved');
+
+        // Add this study's name to the YieldX name check (normalised key only).
+        // The ready-made example study is left out so it never blocks anyone.
+        const isExampleName = Boolean(savedData?.isExample) && businessName.trim() === String(savedData?.exampleName || '').trim();
+        if (!isExampleName) {
+          registerNameInRegistry(activeSavedProjectId || 'draft', checkTradeName(businessName).normalized).catch(() => {});
+        }
         
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(1, currentLevel.maxXp, true);
@@ -267,7 +278,7 @@ export function Level1IdentityOwnership() {
             </h2>
 
             <div className="space-y-4">
-              {/* Business Name with AI Checker */}
+              {/* Business Name with the Omani name check */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
                   isDark ? 'text-purple-200' : 'text-purple-700'
@@ -278,6 +289,8 @@ export function Level1IdentityOwnership() {
                 <AINameChecker
                   value={businessName}
                   onChange={setBusinessName}
+                  savedCheck={nameCheck}
+                  onCheckChange={setNameCheck}
                   language={language}
                   placeholder={isRTL ? 'أدخل اسم المشروع التجاري' : 'Enter business name'}
                 />

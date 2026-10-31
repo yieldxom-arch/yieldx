@@ -105,6 +105,33 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
   const completedCount = levels.filter(l => l.completed).length;
   const totalXP = levels.reduce((s, l) => s + (l.xp || 0), 0);
 
+  // One line summarising the three layers of the Level 1 name check.
+  const nameCheckText = (l1: any): string | undefined => {
+    const c = l1?.nameCheck;
+    if (!c || !l1?.businessName || String(c.name || '').trim() !== String(l1.businessName).trim()) return undefined;
+    const rules = c.rules === 'not_allowed'
+      ? (isRTL ? 'غير مسموح حسب القواعد' : 'not allowed by the rules')
+      : c.rules === 'risky'
+        ? (isRTL ? 'قد يُرفض' : 'may be refused')
+        : (isRTL ? 'لا توجد مخالفات' : 'no problems found');
+    const others = c.yieldx?.others;
+    const own = toNum(c.yieldx?.own);
+    const yx = own + (others ?? 0) > 0
+      ? (isRTL ? `${own + (others ?? 0)} دراسة في YieldX باسم مطابق أو مشابه` : `${own + (others ?? 0)} YieldX ${own + (others ?? 0) === 1 ? 'study' : 'studies'} with the same or a similar name`)
+      : others === null || others === undefined
+        ? (isRTL ? 'لا توجد دراسات أخرى لديك بهذا الاسم' : 'none of your other studies uses it')
+        : (isRTL ? 'لا توجد دراسة أخرى في YieldX بهذا الاسم' : 'no other YieldX study uses it');
+    const d = c.official?.date ? new Intl.DateTimeFormat(isRTL ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${c.official.date}T00:00:00`)) : '';
+    const official = c.official?.status === 'available'
+      ? (isRTL ? `متاح، تم التحقق في استثمر بسهولة بتاريخ ${d}` : `available, checked on Invest Easy on ${d}`)
+      : c.official?.status === 'taken'
+        ? (isRTL ? `مستخدم، تم التحقق في استثمر بسهولة بتاريخ ${d}` : `taken, checked on Invest Easy on ${d}`)
+        : (isRTL ? 'لم يتم التحقق بعد' : 'not checked yet');
+    return isRTL
+      ? `القواعد (القرار الوزاري 124/2016): ${rules} · YieldX: ${yx} · الوزارة: ${official}`
+      : `Rules (Ministerial Decision 124/2016): ${rules} · YieldX: ${yx} · Ministry: ${official}`;
+  };
+
   const handlePrint = () => {
     const printContent = printRef.current;
     if (!printContent) return;
@@ -283,6 +310,7 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
               {Object.keys(l1).length > 0 && (
                 <SectionCard title={`${LEVEL_INFO[1].icon} ${isRTL ? LEVEL_INFO[1].ar : LEVEL_INFO[1].en}`} icon="🏛️">
                   <KeyValue label={isRTL ? 'اسم المشروع' : 'Business Name'} value={l1.businessName} />
+                  <KeyValue label={isRTL ? 'فحص الاسم التجاري' : 'Trade name check'} value={nameCheckText(l1)} />
                   <KeyValue label={isRTL ? 'فكرة المشروع' : 'Project Idea'} value={l1.projectIdea} />
                   <KeyValue label={isRTL ? 'وصف المنتج/الخدمة' : 'Product / Service'} value={l1.productDescription} />
                   <KeyValue label={isRTL ? 'حالة المشروع' : 'Project Status'} value={l1.projectStatus === 'expansion' ? (isRTL ? 'توسعة' : 'Expansion') : l1.projectStatus ? (isRTL ? 'مشروع جديد' : 'New project') : undefined} />

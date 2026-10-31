@@ -85,6 +85,8 @@ export function buildExampleStudy(lang: Lang): {
   const moduleData: Record<string, any> = {
     level1: {
       businessName: t(lang, 'ركن القهوة المختصة', 'Specialty Coffee Corner'),
+      isExample: true,
+      exampleName: t(lang, 'ركن القهوة المختصة', 'Specialty Coffee Corner'),
       projectIdea: t(lang, 'كشك قهوة مختصة قرب الجامعة في نزوى يخدم الطلبة والموظفين بسرعة وجودة عالية.', 'A specialty coffee kiosk near the university in Nizwa serving students and staff with fast, high-quality drinks.'),
       productDescription: t(lang, 'مشروبات إسبريسو وباردة ووجبات خفيفة، مع طلب مسبق عبر تطبيق.', 'Espresso and cold drinks plus snacks, with pre-ordering through an app.'),
       projectStatus: 'new',
