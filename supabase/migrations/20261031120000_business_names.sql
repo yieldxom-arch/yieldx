@@ -23,17 +23,21 @@ create index if not exists business_names_normalized_idx on public.business_name
 
 alter table public.business_names enable row level security;
 
+drop policy if exists "business_names_select_own" on public.business_names;
 create policy "business_names_select_own" on public.business_names
   for select to authenticated using (user_id = (select auth.uid()));
 
+drop policy if exists "business_names_insert_own" on public.business_names;
 create policy "business_names_insert_own" on public.business_names
   for insert to authenticated with check (user_id = (select auth.uid()));
 
+drop policy if exists "business_names_update_own" on public.business_names;
 create policy "business_names_update_own" on public.business_names
   for update to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 
+drop policy if exists "business_names_delete_own" on public.business_names;
 create policy "business_names_delete_own" on public.business_names
   for delete to authenticated using (user_id = (select auth.uid()));
 
