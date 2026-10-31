@@ -10,15 +10,16 @@ interface FeasibilityStudyExportProps {
   onClose: () => void;
 }
 
+// Must match the journey routing (module-0 … module-7) and moduleData keys (level0 … level7).
 const LEVEL_INFO: Record<number, { icon: string; ar: string; en: string }> = {
   0: { icon: '🎯', ar: 'اختيار نوع المشروع', en: 'Project Type Selection' },
   1: { icon: '🏛️', ar: 'الهوية والملكية', en: 'Identity & Ownership' },
   2: { icon: '⚖️', ar: 'الإطار القانوني والتنظيمي', en: 'Legal & Regulatory Framework' },
-  3: { icon: '🏗️', ar: 'الموارد المادية والفنية', en: 'Physical & Technical Resources' },
-  4: { icon: '👥', ar: 'الموارد البشرية والتنظيمية', en: 'Human & Organizational Resources' },
-  5: { icon: '📊', ar: 'السوق والاستراتيجية', en: 'Market & Strategy' },
+  3: { icon: '⚙️', ar: 'المتطلبات التشغيلية', en: 'Operational Requirements' },
+  4: { icon: '🏗️', ar: 'الموارد المادية والفنية', en: 'Physical & Technical Resources' },
+  5: { icon: '👥', ar: 'الموارد البشرية والتنظيمية', en: 'Human & Organizational Resources' },
   6: { icon: '💰', ar: 'التمويل والمؤشرات المالية', en: 'Financing & Financial KPIs' },
-  7: { icon: '🚀', ar: 'النموذج الشامل والتنفيذ', en: 'Full Model & Implementation' },
+  7: { icon: '📊', ar: 'السوق والاستراتيجية', en: 'Market & Strategy' },
 };
 
 const PROJECT_TYPE_LABELS: Record<string, { ar: string; en: string; color: string }> = {
@@ -28,10 +29,10 @@ const PROJECT_TYPE_LABELS: Record<string, { ar: string; en: string; color: strin
   service:      { ar: 'خدمي',  en: 'Service',      color: '#a855f7' },
 };
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lang: string = 'ar'): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString('ar-OM', { year: 'numeric', month: 'long', day: 'numeric' });
+    return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-OM' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch { return iso.slice(0, 10); }
 }
 
@@ -70,13 +71,36 @@ function KeyValue({ label, value }: { label: string; value: string | number | un
   );
 }
 
+function MiniTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
+  if (rows.length === 0) return null;
+  const cell: React.CSSProperties = { padding: '6px 8px', borderBottom: '1px solid #e5e7eb', fontSize: '12px', textAlign: 'start' };
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', margin: '8px 0 12px' }}>
+      <thead>
+        <tr>{headers.map((h, i) => <th key={i} style={{ ...cell, color: '#6366f1', fontWeight: 700, background: '#eef2ff' }}>{h}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} style={{ ...cell, color: '#374151' }}>{c}</td>)}</tr>)}
+      </tbody>
+    </table>
+  );
+}
+
+const toNum = (v: any) => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
 export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExportProps) {
-  const { language, moduleData } = useYieldX();
+  const { language, moduleData, activeSavedProjectId } = useYieldX();
   const printRef = useRef<HTMLDivElement>(null);
   const isRTL = language === 'ar';
+  // Omani rial: show baisa (up to 3 decimals) for small amounts such as unit prices.
+  const money = (n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) < 100 ? 3 : 0 })} ${isRTL ? 'ر.ع' : 'OMR'}`;
 
   const levels = project.levelsSnapshot || [];
-  const snap = project.moduleDataSnapshot || {};
+  // The active project's latest data lives in context; saved snapshots can be older.
+  const snap = (project.id === activeSavedProjectId ? moduleData : project.moduleDataSnapshot) || {};
   const typeInfo = PROJECT_TYPE_LABELS[project.projectType || ''];
   const completedCount = levels.filter(l => l.completed).length;
   const totalXP = levels.reduce((s, l) => s + (l.xp || 0), 0);
@@ -215,9 +239,9 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
                   </div>
                 </div>
                 <div style={{ marginTop: '24px', fontSize: '12px', color: '#6b7280' }}>
-                  {isRTL ? 'آخر تعديل:' : 'Last Edited:'} {formatDate(project.lastEditedDate)}
+                  {isRTL ? 'آخر تعديل:' : 'Last Edited:'} {formatDate(project.lastEditedDate, language)}
                   &nbsp;•&nbsp;
-                  {isRTL ? 'تاريخ الإنشاء:' : 'Created:'} {formatDate(project.createdAt)}
+                  {isRTL ? 'تاريخ الإنشاء:' : 'Created:'} {formatDate(project.createdAt, language)}
                 </div>
               </div>
 
@@ -248,77 +272,190 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
               </SectionCard>
 
               {/* ── Level 0: Project Type ── */}
-              {(l0.projectType || project.projectType) && (
+              {project.projectType && (
                 <SectionCard title={`${LEVEL_INFO[0].icon} ${isRTL ? LEVEL_INFO[0].ar : LEVEL_INFO[0].en}`} icon="🎯">
                   <KeyValue label={isRTL ? 'نوع المشروع' : 'Project Type'} value={typeInfo ? (isRTL ? typeInfo.ar : typeInfo.en) : project.projectType} />
-                  <KeyValue label={isRTL ? 'وضع الدراسة' : 'Study Mode'} value={l0.studyMode} />
-                  <KeyValue label={isRTL ? 'سنوات الإسقاط' : 'Projection Years'} value={l0.yearsProjection} />
+                  <KeyValue label={isRTL ? 'وضع الدراسة' : 'Study Mode'} value={project.studyModeData?.mode} />
                 </SectionCard>
               )}
 
               {/* ── Level 1: Identity & Ownership ── */}
               {Object.keys(l1).length > 0 && (
                 <SectionCard title={`${LEVEL_INFO[1].icon} ${isRTL ? LEVEL_INFO[1].ar : LEVEL_INFO[1].en}`} icon="🏛️">
-                  <KeyValue label={isRTL ? 'اسم المشروع' : 'Project Name'} value={l1.projectName} />
-                  <KeyValue label={isRTL ? 'الشعار/الرؤية' : 'Slogan/Vision'} value={l1.slogan} />
-                  <KeyValue label={isRTL ? 'العنوان' : 'Address'} value={l1.address} />
-                  <KeyValue label={isRTL ? 'رأس المال الإجمالي' : 'Total Capital'} value={l1.totalCapital ? `${Number(l1.totalCapital).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'عدد المساهمين' : 'Shareholders'} value={l1.shareholders?.length} />
-                  {Array.isArray(l1.shareholders) && l1.shareholders.map((sh: any, i: number) => (
-                    <div key={i} style={{ marginRight: '16px', marginBottom: '4px', fontSize: '12px', color: '#6366f1' }}>
-                      • {sh.name} — {sh.percentage}% — {sh.capital ? `${Number(sh.capital).toLocaleString()} ريال` : ''}
-                    </div>
-                  ))}
+                  <KeyValue label={isRTL ? 'اسم المشروع' : 'Business Name'} value={l1.businessName} />
+                  <KeyValue label={isRTL ? 'فكرة المشروع' : 'Project Idea'} value={l1.projectIdea} />
+                  <KeyValue label={isRTL ? 'وصف المنتج/الخدمة' : 'Product / Service'} value={l1.productDescription} />
+                  <KeyValue label={isRTL ? 'حالة المشروع' : 'Project Status'} value={l1.projectStatus === 'expansion' ? (isRTL ? 'توسعة' : 'Expansion') : l1.projectStatus ? (isRTL ? 'مشروع جديد' : 'New project') : undefined} />
+                  <KeyValue label={isRTL ? 'الموقع' : 'Location'} value={l1.location} />
+                  <MiniTable
+                    headers={[isRTL ? 'المالك' : 'Owner', isRTL ? 'الجنسية' : 'Nationality', isRTL ? 'نسبة الملكية' : 'Share']}
+                    rows={(Array.isArray(l1.owners) ? l1.owners : []).filter((o: any) => o?.name).map((o: any) => [
+                      o.name,
+                      o.nationality === 'omani' ? (isRTL ? 'عُماني' : 'Omani') : (isRTL ? 'وافد' : 'Expat'),
+                      `${toNum(o.sharePercentage)}%`,
+                    ])}
+                  />
                 </SectionCard>
               )}
 
               {/* ── Level 2: Legal ── */}
               {Object.keys(l2).length > 0 && (
                 <SectionCard title={`${LEVEL_INFO[2].icon} ${isRTL ? LEVEL_INFO[2].ar : LEVEL_INFO[2].en}`} icon="⚖️">
-                  <KeyValue label={isRTL ? 'الشكل القانوني' : 'Legal Form'} value={l2.legalForm} />
-                  <KeyValue label={isRTL ? 'السجل التجاري' : 'Commercial Register'} value={l2.commercialRegister} />
-                  <KeyValue label={isRTL ? 'رخصة البلدية' : 'Municipal License'} value={l2.municipalLicense} />
-                  <KeyValue label={isRTL ? 'تأمين المنشأة' : 'Premises Insurance'} value={l2.premisesInsurance} />
-                  <KeyValue label={isRTL ? 'تكلفة الإيجار/شهر' : 'Rent/Month'} value={l2.monthlyRent ? `${Number(l2.monthlyRent).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'مساحة المنشأة' : 'Premises Area'} value={l2.premisesArea ? `${l2.premisesArea} م²` : undefined} />
+                  <MiniTable
+                    headers={[isRTL ? 'الترخيص' : 'Licence', isRTL ? 'الجهة' : 'Authority', isRTL ? 'الحالة' : 'Status', isRTL ? 'التكلفة' : 'Cost']}
+                    rows={(Array.isArray(l2.licenses) ? l2.licenses : []).filter((x: any) => x?.name).map((x: any) => [x.name, x.authority || '—', x.status || '—', money(toNum(x.cost))])}
+                  />
+                  <KeyValue label={isRTL ? 'إجمالي تكلفة التراخيص' : 'Total licence cost'} value={Array.isArray(l2.licenses) ? money(l2.licenses.reduce((t: number, x: any) => t + toNum(x.cost), 0)) : undefined} />
+                  <MiniTable
+                    headers={[isRTL ? 'العقار' : 'Premises', isRTL ? 'المساحة' : 'Area', isRTL ? 'إيجار/تملك' : 'Rent/Own', isRTL ? 'الإيجار الشهري' : 'Monthly rent', isRTL ? 'المدة' : 'Duration']}
+                    rows={(Array.isArray(l2.leaseContracts) ? l2.leaseContracts : []).filter((x: any) => x?.propertyType || x?.monthlyRent).map((x: any) => [
+                      x.propertyType || '—', x.area ? `${x.area} m²` : '—', x.leaseOrOwn === 'own' ? (isRTL ? 'تملك' : 'Own') : (isRTL ? 'إيجار' : 'Rent'), money(toNum(x.monthlyRent)), x.duration || '—',
+                    ])}
+                  />
                 </SectionCard>
               )}
 
-              {/* ── Level 3: Physical Resources ── */}
+              {/* ── Level 3: Operational Requirements ── */}
               {Object.keys(l3).length > 0 && (
-                <SectionCard title={`${LEVEL_INFO[3].icon} ${isRTL ? LEVEL_INFO[3].ar : LEVEL_INFO[3].en}`} icon="🏗️">
-                  <KeyValue label={isRTL ? 'إجمالي الأصول الثابتة' : 'Total Fixed Assets'} value={l3.totalFixedAssets ? `${Number(l3.totalFixedAssets).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'إجمالي المواد الخام' : 'Total Raw Materials'} value={l3.totalRawMaterials ? `${Number(l3.totalRawMaterials).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'إجمالي الإهلاك السنوي' : 'Total Annual Depreciation'} value={l3.totalDepreciation ? `${Number(l3.totalDepreciation).toLocaleString()} ريال` : undefined} />
-                  {Array.isArray(l3.fixedAssets) && l3.fixedAssets.slice(0, 5).map((a: any, i: number) => (
-                    <div key={i} style={{ marginRight: '16px', marginBottom: '4px', fontSize: '12px', color: '#f97316' }}>
-                      • {a.name} — {a.quantity} × {Number(a.unitCost || 0).toLocaleString()} ريال
-                    </div>
-                  ))}
+                <SectionCard title={`${LEVEL_INFO[3].icon} ${isRTL ? LEVEL_INFO[3].ar : LEVEL_INFO[3].en}`} icon="⚙️">
+                  <KeyValue label={isRTL ? 'الموقع' : 'Location'} value={l3.location} />
+                  <KeyValue label={isRTL ? 'ساعات العمل' : 'Operating hours'} value={l3.operatingHours} />
+                  <KeyValue label={isRTL ? 'الإيجار الشهري' : 'Monthly rent'} value={l3.rentCost ? money(toNum(l3.rentCost)) : undefined} />
+                  <KeyValue label={isRTL ? 'المرافق الشهرية' : 'Monthly utilities'} value={l3.utilities ? money(toNum(l3.utilities)) : undefined} />
+                  <KeyValue label={isRTL ? 'المواد والمستلزمات' : 'Materials & supplies'} value={l3.rawMaterials} />
+                  <KeyValue label={isRTL ? 'تكلفة المواد الشهرية' : 'Monthly materials cost'} value={l3.rawMaterialsCost ? money(toNum(l3.rawMaterialsCost)) : undefined} />
                 </SectionCard>
               )}
 
-              {/* ── Level 4: Human Resources ── */}
+              {/* ── Level 4: Physical Resources ── */}
               {Object.keys(l4).length > 0 && (
-                <SectionCard title={`${LEVEL_INFO[4].icon} ${isRTL ? LEVEL_INFO[4].ar : LEVEL_INFO[4].en}`} icon="👥">
-                  <KeyValue label={isRTL ? 'إجمالي الرواتب الشهرية' : 'Total Monthly Salaries'} value={l4.totalMonthlySalaries ? `${Number(l4.totalMonthlySalaries).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'إجمالي الرواتب السنوية' : 'Total Annual Salaries'} value={l4.totalAnnualSalaries ? `${Number(l4.totalAnnualSalaries).toLocaleString()} ريال` : undefined} />
-                  <KeyValue label={isRTL ? 'عدد الموظفين' : 'Total Employees'} value={l4.employees?.length} />
-                  {Array.isArray(l4.employees) && l4.employees.slice(0, 6).map((e: any, i: number) => (
-                    <div key={i} style={{ marginRight: '16px', marginBottom: '4px', fontSize: '12px', color: '#8b5cf6' }}>
-                      • {e.jobTitle} — {e.nationality === 'omani' ? (isRTL ? 'عُماني' : 'Omani') : (isRTL ? 'وافد' : 'Expat')} — {Number(e.salary || 0).toLocaleString()} ريال
-                    </div>
-                  ))}
+                <SectionCard title={`${LEVEL_INFO[4].icon} ${isRTL ? LEVEL_INFO[4].ar : LEVEL_INFO[4].en}`} icon="🏗️">
+                  <KeyValue label={isRTL ? 'إجمالي الأصول الثابتة' : 'Total fixed assets'} value={l4.totalFixedAssetsCost ? money(toNum(l4.totalFixedAssetsCost)) : undefined} />
+                  <KeyValue label={isRTL ? 'المواد الخام شهرياً' : 'Raw materials per month'} value={l4.totalMonthlyRawMaterialCost ? money(toNum(l4.totalMonthlyRawMaterialCost)) : undefined} />
+                  <KeyValue label={isRTL ? 'الإهلاك السنوي' : 'Annual depreciation'} value={l4.totalAnnualDepreciation ? money(toNum(l4.totalAnnualDepreciation)) : undefined} />
+                  <MiniTable
+                    headers={[isRTL ? 'الأصل' : 'Asset', isRTL ? 'الكمية' : 'Qty', isRTL ? 'سعر الوحدة' : 'Unit price', isRTL ? 'الإجمالي' : 'Total', isRTL ? 'شراء/إيجار' : 'Buy/Lease']}
+                    rows={(Array.isArray(l4.fixedAssets) ? l4.fixedAssets : []).filter((a: any) => a?.name).map((a: any) => [
+                      a.name, toNum(a.quantity), money(toNum(a.unitPrice)), money(toNum(a.quantity) * toNum(a.unitPrice)), a.acquisitionMethod === 'lease' ? (isRTL ? 'إيجار' : 'Lease') : (isRTL ? 'شراء' : 'Purchase'),
+                    ])}
+                  />
+                  <MiniTable
+                    headers={[isRTL ? 'المادة' : 'Material', isRTL ? 'الكمية الشهرية' : 'Monthly qty', isRTL ? 'سعر الوحدة' : 'Unit price', isRTL ? 'التكلفة الشهرية' : 'Monthly cost']}
+                    rows={(Array.isArray(l4.rawMaterials) ? l4.rawMaterials : []).filter((m: any) => m?.name).map((m: any) => [
+                      m.name, `${toNum(m.monthlyQuantity)} ${m.unit || ''}`, money(toNum(m.unitPrice)), money(toNum(m.monthlyQuantity) * toNum(m.unitPrice)),
+                    ])}
+                  />
                 </SectionCard>
               )}
 
-              {/* ── Level 5: Market & Strategy ── */}
+              {/* ── Level 5: Human Resources ── */}
               {Object.keys(l5).length > 0 && (
-                <SectionCard title={`${LEVEL_INFO[5].icon} ${isRTL ? LEVEL_INFO[5].ar : LEVEL_INFO[5].en}`} icon="📊">
-                  <KeyValue label={isRTL ? 'السوق المستهدف' : 'Target Market'} value={l5.targetMarket} />
-                  <KeyValue label={isRTL ? 'حجم السوق' : 'Market Size'} value={l5.marketSize} />
-                  <KeyValue label={isRTL ? 'الميزة التنافسية' : 'Competitive Advantage'} value={l5.competitiveAdvantage} />
-                  {l5.swot && (
+                <SectionCard title={`${LEVEL_INFO[5].icon} ${isRTL ? LEVEL_INFO[5].ar : LEVEL_INFO[5].en}`} icon="👥">
+                  <KeyValue label={isRTL ? 'عدد الموظفين' : 'Total employees'} value={l5.totalEmployees} />
+                  <KeyValue label={isRTL ? 'نسبة التعمين' : 'Omanization rate'} value={l5.omanizationRate !== undefined ? `${Math.round(toNum(l5.omanizationRate))}%` : undefined} />
+                  <KeyValue label={isRTL ? 'الرواتب الشهرية' : 'Monthly salaries'} value={l5.totalMonthlySalaries ? money(toNum(l5.totalMonthlySalaries)) : undefined} />
+                  <KeyValue label={isRTL ? 'تكلفة الموارد البشرية السنوية' : 'Annual HR cost'} value={l5.totalAnnualHRCost ? money(toNum(l5.totalAnnualHRCost)) : undefined} />
+                  <MiniTable
+                    headers={[isRTL ? 'الوظيفة' : 'Position', isRTL ? 'العدد' : 'Count', isRTL ? 'الجنسية' : 'Nationality', isRTL ? 'الراتب الشهري' : 'Monthly salary']}
+                    rows={(Array.isArray(l5.employees) ? l5.employees : []).filter((e: any) => e?.position).map((e: any) => [
+                      e.position, toNum(e.count), e.nationality === 'omani' ? (isRTL ? 'عُماني' : 'Omani') : (isRTL ? 'وافد' : 'Expat'), money(toNum(e.monthlySalary)),
+                    ])}
+                  />
+                </SectionCard>
+              )}
+
+              {/* ── Level 6: Finance ── */}
+              {Object.keys(l6).length > 0 && (
+                <SectionCard title={`${LEVEL_INFO[6].icon} ${isRTL ? LEVEL_INFO[6].ar : LEVEL_INFO[6].en}`} icon="💰">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <KeyValue label={isRTL ? 'إجمالي الاستثمار' : 'Total investment'} value={l6.totalInvestment ? money(toNum(l6.totalInvestment)) : undefined} />
+                      <KeyValue label={isRTL ? 'رأس المال الخاص' : 'Equity'} value={l6.equityAmount ? money(toNum(l6.equityAmount)) : undefined} />
+                      <KeyValue label={isRTL ? 'القرض' : 'Loan'} value={l6.loanAmount ? money(toNum(l6.loanAmount)) : undefined} />
+                      <KeyValue label={isRTL ? 'الإيرادات الشهرية' : 'Monthly revenue'} value={l6.monthlyRevenue ? money(toNum(l6.monthlyRevenue)) : undefined} />
+                    </div>
+                    <div>
+                      <KeyValue label="IRR" value={l6.kpis?.irr !== undefined ? `${toNum(l6.kpis.irr).toFixed(1)}%` : undefined} />
+                      <KeyValue label={isRTL ? 'صافي القيمة الحالية (10%)' : 'NPV (10%)'} value={l6.kpis?.npv !== undefined ? money(toNum(l6.kpis.npv)) : undefined} />
+                      <KeyValue label="ROI" value={l6.kpis?.roi !== undefined ? `${toNum(l6.kpis.roi).toFixed(1)}%` : undefined} />
+                      <KeyValue label={isRTL ? 'فترة الاسترداد' : 'Payback period'} value={l6.kpis?.paybackPeriod !== undefined ? `${toNum(l6.kpis.paybackPeriod).toFixed(1)} ${isRTL ? 'سنة' : 'yrs'}` : undefined} />
+                      <KeyValue label={isRTL ? 'نقطة التعادل' : 'Break-even'} value={l6.kpis?.breakEvenUnits ? `${Math.ceil(toNum(l6.kpis.breakEvenUnits)).toLocaleString('en-US')} ${isRTL ? 'وحدة/شهر' : 'units/month'}` : undefined} />
+                    </div>
+                  </div>
+                  <MiniTable
+                    headers={[isRTL ? 'السنة' : 'Year', isRTL ? 'الإيرادات' : 'Revenue', isRTL ? 'التكاليف التشغيلية' : 'Operating costs', isRTL ? 'صافي الربح' : 'Net profit']}
+                    rows={(Array.isArray(l6.projections) ? l6.projections : []).map((p: any) => [p.year, money(toNum(p.revenue)), money(toNum(p.costs)), money(toNum(p.profit))])}
+                  />
+                  {l6.scenario && (
+                    <div style={{ marginTop: '8px', padding: '12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '12px', color: '#1e3a8a' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                        {isRTL ? `محاكاة المخاطر (${toNum(l6.scenario.iterations).toLocaleString('en-US')} سيناريو)` : `Risk simulation (${toNum(l6.scenario.iterations).toLocaleString('en-US')} scenarios)`}
+                      </div>
+                      <div>
+                        {isRTL
+                          ? `احتمال تحقيق ربح: ${Math.round(toNum(l6.scenario.pProfit) * 100)}% · النتيجة المرجحة: ${money(toNum(l6.scenario.netP50))} · سيناريو سيئ (1 من 10): ${money(toNum(l6.scenario.netP10))} · الخطة: ${money(toNum(l6.scenario.planNet))}`
+                          : `Chance of profit: ${Math.round(toNum(l6.scenario.pProfit) * 100)}% · Likely result: ${money(toNum(l6.scenario.netP50))} · 1-in-10 bad case: ${money(toNum(l6.scenario.netP10))} · Plan: ${money(toNum(l6.scenario.planNet))}`}
+                      </div>
+                      <div>
+                        {isRTL ? `أكثر افتراض مؤثر: ${l6.scenario.topDriverAr}` : `Most sensitive assumption: ${l6.scenario.topDriver}`}
+                      </div>
+                    </div>
+                  )}
+                  {l6.omanChecks && (
+                    <div style={{ marginTop: '10px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '12px', color: '#14532d' }}>
+                      <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                        {isRTL ? `الملاءمة لعُمان (القواعد حتى ${l6.omanChecks.checkedOn})` : `Oman fit (rules as of ${l6.omanChecks.checkedOn})`}
+                      </div>
+                      {l6.scenario && toNum(l6.scenario.calendarEffect) !== 0 && (
+                        <div>
+                          {isRTL
+                            ? `أثر التقويم العُماني (رمضان والأعياد والمواسم) على نتيجة الخطة: ${money(toNum(l6.scenario.calendarEffect))}${l6.openingMonth ? ` · الافتتاح: ${l6.openingMonth}` : ''}`
+                            : `Omani calendar effect (Ramadan, Eids, seasons) on the plan's result: ${money(toNum(l6.scenario.calendarEffect))}${l6.openingMonth ? ` · opening: ${l6.openingMonth}` : ''}`}
+                        </div>
+                      )}
+                      <div>
+                        {l6.omanChecks.vatMandatoryMonth
+                          ? (isRTL ? `ضريبة القيمة المضافة: التسجيل إلزامي من الشهر ${l6.omanChecks.vatMandatoryMonth}` : `VAT: registration mandatory from month ${l6.omanChecks.vatMandatoryMonth}`)
+                          : (isRTL ? 'ضريبة القيمة المضافة: لا يلزم التسجيل خلال فترة الدراسة' : 'VAT: registration not required within the study period')}
+                        {l6.omanChecks.taxRateYear1 !== null && (isRTL
+                          ? ` · ضريبة الدخل في السنة 1: ${Math.round(toNum(l6.omanChecks.taxRateYear1) * 100)}% · إجمالي الضريبة: ${money(toNum(l6.omanChecks.totalTax))}`
+                          : ` · Income tax year 1: ${Math.round(toNum(l6.omanChecks.taxRateYear1) * 100)}% · total tax: ${money(toNum(l6.omanChecks.totalTax))}`)}
+                      </div>
+                      {Array.isArray(l6.omanChecks.financing) && (
+                        <div>
+                          {(isRTL ? 'اختبار النجاة المالية: ' : 'Financing survival: ') + l6.omanChecks.financing.map((f: any) => {
+                            const name = f.id === 'own' ? (isRTL ? 'تمويل ذاتي' : 'own money') : f.id === 'plan' ? (isRTL ? 'خطة التمويل' : 'your plan') : (isRTL ? 'عرض تنموي' : 'development offer');
+                            const ok = f.firstNegativeMonth === null;
+                            const tough = f.toughFirstNegativeMonth === null;
+                            return `${name}: ${ok ? (isRTL ? 'يبقى موجباً' : 'stays positive') : (isRTL ? `ينفد النقد في الشهر ${f.firstNegativeMonth}` : `runs out in month ${f.firstNegativeMonth}`)}${tough ? '' : (isRTL ? ` (مع إيرادات أقل 20%: الشهر ${f.toughFirstNegativeMonth})` : ` (with 20% less revenue: month ${f.toughFirstNegativeMonth})`)}`;
+                          }).join(' · ')}
+                        </div>
+                      )}
+                      <div>
+                        {isRTL
+                          ? `الأثر الوطني: ${toNum(l6.omanChecks.impactScore)}/100 · التعمين ${Math.round(toNum(l6.omanChecks.omanizationRate))}% · إنفاق محلي سنوي ${money(toNum(l6.omanChecks.annualLocalSpend))} · إيرادات عامة سنوية ${money(toNum(l6.omanChecks.annualPublicContribution))}`
+                          : `National impact: ${toNum(l6.omanChecks.impactScore)}/100 · Omanization ${Math.round(toNum(l6.omanChecks.omanizationRate))}% · local spending ${money(toNum(l6.omanChecks.annualLocalSpend))}/yr · public revenue ${money(toNum(l6.omanChecks.annualPublicContribution))}/yr`}
+                      </div>
+                    </div>
+                  )}
+                </SectionCard>
+              )}
+
+              {/* ── Level 7: Market & Strategy ── */}
+              {Object.keys(l7).length > 0 && (
+                <SectionCard title={`${LEVEL_INFO[7].icon} ${isRTL ? LEVEL_INFO[7].ar : LEVEL_INFO[7].en}`} icon="📊">
+                  <MiniTable
+                    headers={[isRTL ? 'المنتج/الخدمة' : 'Product / service', isRTL ? 'السعر' : 'Price', isRTL ? 'الكمية الشهرية' : 'Monthly qty', isRTL ? 'هامش الربح' : 'Margin', isRTL ? 'الإيراد الشهري' : 'Monthly revenue']}
+                    rows={(Array.isArray(l7.products) ? l7.products : []).filter((p: any) => p?.name).map((p: any) => [
+                      p.name, money(toNum(p.price)), toNum(p.monthlyQuantity), `${toNum(p.profitMargin)}%`, money(toNum(p.price) * toNum(p.monthlyQuantity)),
+                    ])}
+                  />
+                  <KeyValue label={isRTL ? 'إجمالي الإيرادات الشهرية' : 'Total monthly revenue'} value={l7.totalMonthlyRevenue ? money(toNum(l7.totalMonthlyRevenue)) : undefined} />
+                  <MiniTable
+                    headers={[isRTL ? 'المنافس' : 'Competitor', isRTL ? 'نقاط القوة' : 'Strengths', isRTL ? 'نقاط الضعف' : 'Weaknesses']}
+                    rows={(Array.isArray(l7.competitors) ? l7.competitors : []).filter((c: any) => c?.name).map((c: any) => [c.name, c.strengths || '—', c.weaknesses || '—'])}
+                  />
+                  {l7.swot && (
                     <div style={{ marginTop: '12px' }}>
                       <div style={{ fontWeight: 700, color: '#374151', marginBottom: '8px', fontSize: '13px' }}>
                         {isRTL ? 'تحليل SWOT:' : 'SWOT Analysis:'}
@@ -332,60 +469,12 @@ export function FeasibilityStudyExport({ project, onClose }: FeasibilityStudyExp
                         ].map(q => (
                           <div key={q.key} style={{ padding: '10px', background: '#f9fafb', borderRadius: '6px', border: `1px solid ${q.color}40` }}>
                             <div style={{ fontWeight: 700, color: q.color, fontSize: '12px', marginBottom: '4px' }}>{q.label}</div>
-                            {Array.isArray(l5.swot?.[q.key]) && l5.swot[q.key].map((pt: any, i: number) => (
-                              <div key={i} style={{ fontSize: '11px', color: '#374151', marginBottom: '2px' }}>• {pt.text || pt}</div>
+                            {Array.isArray(l7.swot?.[q.key]) && l7.swot[q.key].filter((pt: any) => (pt?.text ?? pt)).map((pt: any, i: number) => (
+                              <div key={i} style={{ fontSize: '11px', color: '#374151', marginBottom: '2px' }}>• {pt?.text ?? pt}</div>
                             ))}
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </SectionCard>
-              )}
-
-              {/* ── Level 6: Finance ── */}
-              {Object.keys(l6).length > 0 && (
-                <SectionCard title={`${LEVEL_INFO[6].icon} ${isRTL ? LEVEL_INFO[6].ar : LEVEL_INFO[6].en}`} icon="💰">
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <KeyValue label={isRTL ? 'إجمالي الإيرادات السنوية' : 'Annual Revenue'} value={l6.annualRevenue ? `${Number(l6.annualRevenue).toLocaleString()} ريال` : undefined} />
-                      <KeyValue label={isRTL ? 'إجمالي التكاليف السنوية' : 'Annual Costs'} value={l6.totalAnnualCosts ? `${Number(l6.totalAnnualCosts).toLocaleString()} ريال` : undefined} />
-                      <KeyValue label={isRTL ? 'صافي الربح السنوي' : 'Net Profit'} value={l6.netProfit ? `${Number(l6.netProfit).toLocaleString()} ريال` : undefined} />
-                    </div>
-                    <div>
-                      <KeyValue label="ROI" value={l6.roi ? `${l6.roi}%` : undefined} />
-                      <KeyValue label="IRR" value={l6.irr ? `${l6.irr}%` : undefined} />
-                      <KeyValue label="NPV" value={l6.npv ? `${Number(l6.npv).toLocaleString()} ريال` : undefined} />
-                      <KeyValue label={isRTL ? 'فترة الاسترداد' : 'Payback Period'} value={l6.paybackPeriod ? `${l6.paybackPeriod} ${isRTL ? 'سنة' : 'yrs'}` : undefined} />
-                      <KeyValue label={isRTL ? 'نقطة التعادل' : 'Break-even'} value={l6.breakEvenPoint} />
-                    </div>
-                  </div>
-                </SectionCard>
-              )}
-
-              {/* ── Level 7: BMC & Implementation ── */}
-              {Object.keys(l7).length > 0 && (
-                <SectionCard title={`${LEVEL_INFO[7].icon} ${isRTL ? LEVEL_INFO[7].ar : LEVEL_INFO[7].en}`} icon="🚀">
-                  <KeyValue label={isRTL ? 'مساهمة رؤية عُمان 2040' : 'Oman Vision 2040'} value={l7.oman2040Contribution} />
-                  <KeyValue label={isRTL ? 'الوظائف المباشرة' : 'Direct Jobs'} value={l7.directJobs} />
-                  <KeyValue label={isRTL ? 'الوظائف غير المباشرة' : 'Indirect Jobs'} value={l7.indirectJobs} />
-                  {l7.bmc && (
-                    <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                      {[
-                        { key: 'valueProposition', label: isRTL ? 'القيمة المقدمة' : 'Value Proposition' },
-                        { key: 'customerSegments', label: isRTL ? 'شرائح العملاء' : 'Customer Segments' },
-                        { key: 'revenueStreams', label: isRTL ? 'مصادر الإيرادات' : 'Revenue Streams' },
-                        { key: 'keyPartners', label: isRTL ? 'الشركاء الرئيسيون' : 'Key Partners' },
-                        { key: 'keyActivities', label: isRTL ? 'الأنشطة الرئيسية' : 'Key Activities' },
-                        { key: 'costStructure', label: isRTL ? 'هيكل التكاليف' : 'Cost Structure' },
-                      ].map(b => (
-                        <div key={b.key} style={{ padding: '10px', background: '#f5f3ff', borderRadius: '6px', border: '1px solid #c4b5fd' }}>
-                          <div style={{ fontWeight: 700, color: '#7c3aed', fontSize: '11px', marginBottom: '4px' }}>{b.label}</div>
-                          {Array.isArray(l7.bmc?.[b.key]) && l7.bmc[b.key].map((item: string, i: number) => (
-                            <div key={i} style={{ fontSize: '11px', color: '#374151' }}>• {item}</div>
-                          ))}
-                        </div>
-                      ))}
                     </div>
                   )}
                 </SectionCard>

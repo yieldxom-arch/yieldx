@@ -6,7 +6,6 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Separator } from '@/app/components/ui/separator';
 import { generateFeasibilityReport } from '@/lib/ai';
-import jsPDF from 'jspdf';
 
 export function CompletionReport() {
   const { user, levels, moduleData, totalXP, language, theme } = useYieldX();
@@ -33,30 +32,51 @@ export function CompletionReport() {
     } catch (err) {
       console.error('Report generation failed', err);
       setReportText(language === 'ar'
-        ? 'فشل إنشاء التقرير. تأكد من إعداد مفتاح VITE_ANTHROPIC_API_KEY.'
-        : 'Report generation failed. Make sure VITE_ANTHROPIC_API_KEY is set.');
+        ? 'تعذّر إنشاء التقرير الآن. تأكد من تسجيل الدخول واتصال الإنترنت ثم حاول مرة أخرى.'
+        : 'The report could not be generated right now. Check that you are logged in and online, then try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Print-to-PDF through the browser: unlike jsPDF's built-in fonts, this renders
+  // Arabic text correctly (right-to-left, joined letters).
   const handleDownloadPDF = () => {
     if (!reportText) return;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const maxWidth = pageWidth - margin * 2;
-    doc.setFontSize(16);
-    doc.text(language === 'ar' ? 'دراسة الجدوى — YieldX' : 'Feasibility Study — YieldX', margin, 20);
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(reportText, maxWidth);
-    let y = 30;
-    lines.forEach((line: string) => {
-      if (y > 280) { doc.addPage(); y = 15; }
-      doc.text(line, margin, y);
-      y += 6;
-    });
-    doc.save('YieldX_Feasibility_Study.pdf');
+    const isAr = language === 'ar';
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const inline = (t: string) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    const body = reportText
+      .split('\n')
+      .map((line) => {
+        const l = line.trim();
+        if (!l) return '';
+        if (/^###\s+/.test(l)) return `<h3>${inline(l.replace(/^###\s+/, ''))}</h3>`;
+        if (/^##?\s+/.test(l)) return `<h2>${inline(l.replace(/^##?\s+/, ''))}</h2>`;
+        if (/^[-*•]\s+/.test(l)) return `<li>${inline(l.replace(/^[-*•]\s+/, ''))}</li>`;
+        return `<p>${inline(l)}</p>`;
+      })
+      .join('\n');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html dir="${isAr ? 'rtl' : 'ltr'}" lang="${language}"><head><meta charset="UTF-8">
+      <title>${isAr ? 'دراسة الجدوى — YieldX' : 'Feasibility Study — YieldX'}</title>
+      <style>
+        body { font-family: ${isAr ? "'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif" : "'Inter', 'Segoe UI', Arial, sans-serif"}; color: #111827; line-height: 1.7; font-size: 12.5px; margin: 0; }
+        h1 { font-size: 22px; margin: 0 0 4px; color: #312e81; }
+        h2 { font-size: 16px; margin: 18px 0 6px; color: #312e81; border-bottom: 1px solid #e0e7ff; padding-bottom: 4px; }
+        h3 { font-size: 14px; margin: 14px 0 4px; color: #3730a3; }
+        p { margin: 4px 0; } li { margin: 2px 0; }
+        .meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; }
+        @page { size: A4; margin: 16mm; }
+      </style></head><body>
+      <h1>${isAr ? 'دراسة الجدوى' : 'Feasibility Study'}</h1>
+      <div class="meta">YieldX · ${new Date().toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      ${body}
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
   };
 
   const shareReport = () => {

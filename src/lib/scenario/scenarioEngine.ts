@@ -60,6 +60,8 @@ export interface CostLine {
   type: "variable" | "fixed";
   /** One value per year, same length as `revenue`. */
   yearly: number[];
+  /** Marks financing costs (loan interest), left out of operating cash in the financing test. */
+  financing?: boolean;
 }
 
 export interface BaseProjection {
@@ -75,6 +77,11 @@ export interface ScenarioOptions {
   /** Annual discount rate for NPV, e.g. 0.08. */
   annualDiscountRate?: number;
   histogramBins?: number;
+  /**
+   * Demand multiplier per calendar month from the opening month (e.g. from the
+   * Omani calendar). Missing months count as 1.
+   */
+  seasonality?: number[];
 }
 
 export interface Outcome {
@@ -111,6 +118,8 @@ export interface ScenarioResult {
   months: number;
   /** The single-number answer a traditional study gives (all inputs as planned, no events). */
   baseCase: Outcome;
+  /** The plan with only the seasonal calendar applied (equal to baseCase when no seasonality). */
+  calendarCase: Outcome;
   pPositiveNet: number;
   pPositiveNPV: number;
   pBreakEvenWithinHorizon: number;
@@ -161,6 +170,7 @@ export function runPath(
   base: BaseProjection,
   s: DrawnScenario,
   annualDiscountRate: number,
+  seasonality?: number[],
 ): Outcome {
   const years = base.revenue.length;
   const months = years * 12;
@@ -180,7 +190,7 @@ export function runPath(
   const cumulative: number[] = new Array(months);
 
   for (let m = 0; m < months; m++) {
-    let demand = s.mult.demand;
+    let demand = s.mult.demand * (seasonality?.[m] ?? 1);
     let price = s.mult.price;
     let variableCost = s.mult.variableCost;
     let fixedCost = s.mult.fixedCost;
@@ -236,6 +246,7 @@ export function simulate(
   const seed = options.seed ?? 2026;
   const rate = options.annualDiscountRate ?? 0.08;
   const bins = options.histogramBins ?? 24;
+  const seasonality = options.seasonality;
   const months = base.revenue.length * 12;
   const rng: Rng = mulberry32(seed);
 
@@ -259,7 +270,7 @@ export function simulate(
       if (hit) s.active.push({ affects: e.affects, multiplier: e.multiplier, startMonth });
     });
 
-    const out = runPath(base, s, rate);
+    const out = runPath(base, s, rate, seasonality);
     nets[i] = out.net;
     npvs[i] = out.npv;
     if (out.breakEvenMonth !== null) breakEvens.push(out.breakEvenMonth);
@@ -267,6 +278,7 @@ export function simulate(
   }
 
   const baseCase = runPath(base, plannedScenario(), rate);
+  const calendarCase = seasonality ? runPath(base, plannedScenario(), rate, seasonality) : baseCase;
 
   // Fan chart bands.
   const fan = cumByMonth.map((vals, m) => {
@@ -294,7 +306,7 @@ export function simulate(
         const s = plannedScenario();
         if (d.kind === "launchDelay") s.delay = Math.max(0, Math.round(v));
         else s.mult[d.kind] = v;
-        return runPath(base, s, rate).net;
+        return runPath(base, s, rate, seasonality).net;
       };
       // For cost drivers and delay, the "high" value is the bad one; keep low/high as the input range.
       const netAtLow = at(d.range.low);
@@ -340,6 +352,7 @@ export function simulate(
     seed,
     months,
     baseCase,
+    calendarCase,
     pPositiveNet: nets.filter((v) => v > 0).length / iterations,
     pPositiveNPV: npvs.filter((v) => v > 0).length / iterations,
     pBreakEvenWithinHorizon: breakEvens.length / iterations,
@@ -351,6 +364,32 @@ export function simulate(
     sensitivity,
     events: eventImpacts,
   };
+}
+
+/**
+ * Month-by-month operating cash (revenue minus costs, before the initial investment)
+ * for the plan as entered, with optional seasonality and a revenue factor
+ * (e.g. 0.8 for a 20% revenue shortfall). Financing cost lines can be left out
+ * so loans are modelled separately.
+ */
+export function monthlyOperatingCash(
+  base: BaseProjection,
+  opts: { seasonality?: number[]; revenueFactor?: number; excludeFinancing?: boolean } = {},
+): number[] {
+  const years = base.revenue.length;
+  const out: number[] = [];
+  const factor = opts.revenueFactor ?? 1;
+  for (let m = 0; m < years * 12; m++) {
+    const y = Math.floor(m / 12);
+    const demand = (opts.seasonality?.[m] ?? 1) * factor;
+    let cash = (base.revenue[y] / 12) * demand;
+    for (const c of base.costs) {
+      if (opts.excludeFinancing && c.financing) continue;
+      cash -= (c.yearly[y] / 12) * (c.type === 'variable' ? demand : 1);
+    }
+    out.push(cash);
+  }
+  return out;
 }
 
 /**
