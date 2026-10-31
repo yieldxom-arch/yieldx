@@ -40,6 +40,7 @@ import {
   DialogDescription,
 } from '@/app/components/ui/dialog';
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
+import { OasisMap } from '@/app/components/oasis/OasisMap';
 
 // Updated for NEW 7-LEVEL SYSTEM (0-7)
 const levelIcons = [
@@ -106,7 +107,8 @@ const getStatusBadge = (status?: string, language: 'ar' | 'en', t: any) => {
   }
 };
 
-export function EnhancedSpaceMap() {
+/** The classic card grid of levels (used as the "List" view of the oasis map). */
+export function LevelGridMap() {
   const { levels, setCurrentView, user, language } = useYieldX();
   
   // Get translations for current language
@@ -688,4 +690,8 @@ export function EnhancedSpaceMap() {
       </motion.div>
     </div>
   );
+}
+/** The level map: a 3D Omani oasis, with the card grid as the list view. */
+export function EnhancedSpaceMap() {
+  return <OasisMap renderList={() => <LevelGridMap />} />;
 }
