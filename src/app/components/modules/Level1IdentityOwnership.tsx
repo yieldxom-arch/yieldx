@@ -165,10 +165,8 @@ export function Level1IdentityOwnership() {
           setIsLoadingAi(true);
         }
         
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-2');
-        }, 1500);
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 1 } }));
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };

@@ -162,14 +162,14 @@ export function NotificationsCenter() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                              {language === 'ar' ? notification.titleAr : notification.titleEn}
+                              {language === 'ar' ? notification.titleAr : notification.title}
                             </h4>
                             {!notification.read && (
                               <span className="flex-shrink-0 w-2 h-2 bg-[#4ECDC4] rounded-full mt-1.5"></span>
                             )}
                           </div>
                           <p className={`text-sm mt-1 ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
-                            {language === 'ar' ? notification.messageAr : notification.messageEn}
+                            {language === 'ar' ? notification.messageAr : notification.message}
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <p className="text-[#0d9488] dark:text-[#7FDBCA] text-xs">{formatTimestamp(notification.timestamp)}</p>

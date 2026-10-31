@@ -208,10 +208,8 @@ export function Level3PhysicalResources() {
           setIsLoadingAi(true);
         }
         
-        setTimeout(() => {
-          setSaveStatus('idle');
-          setCurrentView('module-4');
-        }, 1500);
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 4 } }));
+        setTimeout(() => setSaveStatus('idle'), 1500);
       }
     }, 500);
   };

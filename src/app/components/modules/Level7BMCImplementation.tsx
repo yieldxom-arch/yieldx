@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Grid3x3, Calendar, Upload, Flag, ArrowLeft, Save, AlertCircle, CheckCircle2, Rocket, Award } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
-import { generateCEOInsights } from '@/lib/copilot-ai';
 import type { BMCData, Oman2040Contribution } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -204,38 +203,7 @@ export function Level7BMCImplementation() {
           saveCurrentData(true);
         }
 
-        void (async () => {
-          try {
-            const insights = await generateCEOInsights(
-              {
-                projectTypeData,
-                studyModeData,
-                moduleData,
-                enhancedSWOT,
-                financialKPIs,
-                bmcData,
-                oman2040,
-              },
-              language
-            );
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-generated', {
-              detail: {
-                role: 'CEO',
-                messages: insights,
-              },
-            }));
-          } catch (error) {
-            console.error('Orion background generation failed', error);
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-error', {
-              detail: {
-                role: 'CEO',
-                error: language === 'ar'
-                  ? 'فشل إنشاء الرؤى الاستراتيجية في الخلفية. حاول مرة أخرى.'
-                  : 'Strategic insights generation failed in the background. Please try again.',
-              },
-            }));
-          }
-        })();
+        // The YieldX Advisor reviews the whole study when it is opened.
 
         setTimeout(() => {
           setSaveStatus('idle');

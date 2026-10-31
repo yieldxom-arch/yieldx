@@ -9,7 +9,12 @@ import { CertificateGallery } from '@/app/components/certificates/CertificateGal
 import { BrandedSearchWithResults } from '@/app/components/ui/branded-search';
 
 export function CertificatesPage({ onBack }: { onBack: () => void }) {
-  const { language, levels, activeProject } = useYieldX();
+  const { language, levels, savedProjects, activeSavedProjectId, moduleData: __md } = useYieldX();
+  const activeProject = (() => {
+    const sp = savedProjects.find(p => p.id === activeSavedProjectId);
+    const name = String(__md?.level1?.businessName || sp?.name || '').trim();
+    return name ? { name } : null;
+  })();
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const handleSearch = (query: string) => {
@@ -27,7 +32,7 @@ export function CertificatesPage({ onBack }: { onBack: () => void }) {
         results.push({
           id: `level-${level.levelId}`,
           title: level.title,
-          description: level.subtitle,
+          description: level.objective || '',
           type: language === 'ar' ? 'مستوى' : 'Level',
           icon: <Award className="w-4 h-4" />
         });

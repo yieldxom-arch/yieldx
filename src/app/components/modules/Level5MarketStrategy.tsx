@@ -3,7 +3,6 @@ import { CompetitorAnalysisMap } from './CompetitorAnalysisMap';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Target, TrendingUp, Lightbulb, ArrowLeft, Save, AlertCircle, CheckCircle2, Sparkles, Info } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
-import { generateCMOInsights } from '@/lib/copilot-ai';
 import type { SWOTPoint } from '@/app/contexts/YieldXContext';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -346,39 +345,9 @@ export function Level5MarketStrategy() {
         if (currentLevel && currentLevel.xp < currentLevel.maxXp) {
           updateLevelProgress(7, currentLevel.maxXp, true);
         }
+        window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 7 } }));
 
-        void (async () => {
-          try {
-            const insights = await generateCMOInsights(
-              {
-                projectTypeData,
-                studyModeData,
-                moduleData,
-                enhancedSWOT,
-                financialKPIs,
-                bmcData,
-                oman2040,
-              },
-              language
-            );
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-generated', {
-              detail: {
-                role: 'CMO',
-                messages: insights,
-              },
-            }));
-          } catch (error) {
-            console.error('Nova background generation failed', error);
-            window.dispatchEvent(new CustomEvent('yieldx:copilot-insights-error', {
-              detail: {
-                role: 'CMO',
-                error: language === 'ar'
-                  ? 'فشل إنشاء رؤى السوق في الخلفية. حاول مرة أخرى.'
-                  : 'Market insights generation failed in the background. Please try again.',
-              },
-            }));
-          }
-        })();
+        // The YieldX Advisor reviews the whole study when it is opened.
         
         // YieldX AI level feedback
         getLevelAiFeedback(7, moduleData['level7'] || {}, language as 'ar' | 'en')

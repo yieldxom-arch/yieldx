@@ -140,7 +140,7 @@ export function BadgesAndAchievements() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold text-slate-900 dark:text-white">
-                              {language === 'ar' ? badge.nameAr : badge.nameEn}
+                              {language === 'ar' ? badge.nameAr : badge.name}
                             </h4>
                             {badge.earnedAt && (
                               <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -150,7 +150,7 @@ export function BadgesAndAchievements() {
                             )}
                           </div>
                           <p className="text-xs text-slate-600 dark:text-gray-400 mb-2">
-                            {language === 'ar' ? badge.descriptionAr : badge.descriptionEn}
+                            {language === 'ar' ? badge.descriptionAr : badge.description}
                           </p>
                           {badge.earnedAt && (
                             <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
@@ -188,10 +188,10 @@ export function BadgesAndAchievements() {
                           </div>
                           <div>
                             <h4 className="font-bold text-slate-900 dark:text-white">
-                              {language === 'ar' ? achievement.nameAr : achievement.nameEn}
+                              {language === 'ar' ? achievement.nameAr : achievement.name}
                             </h4>
                             <p className="text-xs text-slate-600 dark:text-gray-400">
-                              {language === 'ar' ? achievement.descriptionAr : achievement.descriptionEn}
+                              {language === 'ar' ? achievement.descriptionAr : achievement.description}
                             </p>
                           </div>
                         </div>
@@ -205,10 +205,10 @@ export function BadgesAndAchievements() {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-600 dark:text-gray-400">{t.progress}</span>
                           <span className="font-semibold text-slate-900 dark:text-white">
-                            {achievement.progress}/{achievement.target}
+                            {achievement.unlocked ? '1/1' : '0/1'}
                           </span>
                         </div>
-                        <Progress value={(achievement.progress / achievement.target) * 100} className="h-2" />
+                        <Progress value={achievement.unlocked ? 100 : 0} className="h-2" />
                       </div>
                     </Card>
                   ))}

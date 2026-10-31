@@ -52,7 +52,7 @@ const revolutionaryFeatures: Feature[] = [
     icon: <Brain className="w-8 h-8" />,
     title: 'AI Business Officers',
     titleAr: 'مسؤولو الأعمال بالذكاء الاصطناعي',
-    description: 'Meet Atlas (CFO), Nova (CMO), and Orion (CEO) - Your AI team with unique personalities!',
+    description: 'One YieldX Advisor that reviews your whole study and answers your questions.',
     descriptionAr: 'تعرف على أطلس ونوفا وأوريون - فريق الذكاء الاصطناعي بشخصيات فريدة!',
     color: '#FF6B9D',
     highlights: [

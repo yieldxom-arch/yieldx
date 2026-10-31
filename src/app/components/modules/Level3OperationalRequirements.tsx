@@ -122,6 +122,7 @@ export function Level3OperationalRequirements() {
     setValidationErrors([]);
     handleSave();
     updateLevelProgress(3, currentLevel?.maxXp || 200, true);
+    window.dispatchEvent(new CustomEvent('yieldx:level-complete', { detail: { levelId: 3 } }));
 
     // Fetch AI feedback after submission
     setIsLoadingAi(true);

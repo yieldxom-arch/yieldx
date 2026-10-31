@@ -20,7 +20,12 @@ import {
 } from '@/app/utils/certificateGenerator';
 
 export function CertificateSystem() {
-  const { user, levels, moduleData, totalXP, language, activeProject } = useYieldX();
+  const { user, levels, moduleData, totalXP, language, savedProjects, activeSavedProjectId, moduleData: __md } = useYieldX();
+  const activeProject = (() => {
+    const sp = savedProjects.find(p => p.id === activeSavedProjectId);
+    const name = String(__md?.level1?.businessName || sp?.name || '').trim();
+    return name ? { name } : null;
+  })();
   const [showCertificateDialog, setShowCertificateDialog] = useState(false);
   const [userName, setUserName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
