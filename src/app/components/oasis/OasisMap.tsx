@@ -1,13 +1,13 @@
 import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, Circle, Lock, Map as MapIcon, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, X, Box, List } from 'lucide-react';
+import { Box, CheckCircle2, Circle, List, Lock, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, X } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
 import { Card } from '@/app/components/ui/card';
-import { OASIS_STATIONS } from './oasisData';
-import type { StationState } from './OasisScene';
+import { VALLEY_LEVELS } from './oasisData';
+import type { StationState, TimeOfDay } from './ValleyScene';
 
-const OasisScene = lazy(() => import('./OasisScene'));
+const ValleyScene = lazy(() => import('./ValleyScene'));
 
 function hasWebGL(): boolean {
   try {
@@ -24,7 +24,7 @@ class SceneBoundary extends Component<{ fallback: React.ReactNode; children: Rea
     return { failed: true };
   }
   componentDidCatch(error: unknown) {
-    console.warn('Oasis 3D view failed, showing the list instead:', error);
+    console.warn('3D valley failed, showing the list instead:', error);
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -34,13 +34,19 @@ class SceneBoundary extends Component<{ fallback: React.ReactNode; children: Rea
 const SEEN_KEY = 'yieldx_oasis_done';
 const VIEW_KEY = 'yieldx_map_view';
 
+const SKY: Record<TimeOfDay, string> = {
+  day: 'linear-gradient(180deg,#9fd0ea 0%,#cfe6ee 38%,#f4e3c4 72%,#efd3a6 100%)',
+  dusk: 'linear-gradient(180deg,#1f2050 0%,#5a3f78 40%,#c0686a 75%,#f0a46e 100%)',
+  night: 'linear-gradient(180deg,#05071a 0%,#0e1438 50%,#1c2350 100%)',
+};
+
 /**
- * The level map as a 3D Omani oasis. Each level is a place on a falaj; finished
- * places come alive. A side panel shows the selected place and what it unlocks.
+ * The level map as a living 3D Nizwa valley. Each finished level brings a part
+ * of the valley to life. A side panel shows the selected level and what it gives.
  * `renderList` shows the classic card grid (also used if WebGL is missing).
  */
 export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) {
-  const { levels, setCurrentView, language, theme, activeSavedProjectId } = useYieldX();
+  const { levels, setCurrentView, language, theme, activeSavedProjectId, moduleData } = useYieldX();
   const t = translations[language];
   const isAr = language === 'ar';
   const isDark = theme === 'dark';
@@ -54,29 +60,25 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
       return '3d';
     }
   });
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [resetSignal, setResetSignal] = useState(0);
-  const [celebrate, setCelebrate] = useState<number | null>(null);
-  const [toast, setToast] = useState<number | null>(null);
+  const [zoom, setZoom] = useState({ n: 0, dir: 1 as 1 | -1 });
+  const [fresh, setFresh] = useState<number | null>(null);
+  const [banner, setBanner] = useState<number | null>(null);
+  const [settled, setSettled] = useState(false);
 
   const stations: StationState[] = useMemo(() => {
     const done = levels.filter(l => l.completed).length;
-    return OASIS_STATIONS.map(s => {
-      if (s.levelId === -1) {
-        return {
-          levelId: -1,
-          status: done >= 8 ? 'done' : 'active',
-          progress: Math.min(1, done / 8),
-          title: t.levels.capstoneFullTitle,
-        } as StationState;
+    return VALLEY_LEVELS.map(v => {
+      if (v.levelId === -1) {
+        return { levelId: -1, status: done >= 8 ? 'done' : 'active', progress: Math.min(1, done / 8), title: t.levels.capstoneFullTitle } as StationState;
       }
-      const level = levels.find(l => l.levelId === s.levelId);
+      const level = levels.find(l => l.levelId === v.levelId);
       const progress = level ? Math.max(0, Math.min(1, (level.xp || 0) / (level.maxXp || 1))) : 0;
       return {
-        levelId: s.levelId,
+        levelId: v.levelId,
         status: level?.completed ? 'done' : level?.unlocked ? 'active' : 'locked',
         progress,
-        title: (t.levels as any)[`level${s.levelId}Title`] || `Level ${s.levelId}`,
+        title: (t.levels as any)[`level${v.levelId}Title`] || `Level ${v.levelId}`,
       } as StationState;
     });
   }, [levels, t]);
@@ -84,32 +86,34 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
   const finished = stations.filter(s => s.levelId >= 0 && s.status === 'done').length;
   const firstOpen = stations.find(s => s.levelId >= 0 && s.status === 'active')?.levelId ?? -1;
   const [selected, setSelected] = useState<number | null>(firstOpen);
+  const timeOfDay: TimeOfDay = finished >= 8 ? 'night' : isDark ? 'dusk' : 'day';
+  const businessName = String(moduleData?.level1?.businessName || '').trim() || tx('Your business', 'مشروعك');
 
-  // Celebrate places finished since the last visit (per study). Levels load a
-  // moment after the map mounts, so wait until they settle before comparing.
+  // Find levels finished since the last visit (per study). Levels load a moment
+  // after the map mounts, so wait until they settle before comparing.
   useEffect(() => {
     const doneIds = stations.filter(s => s.levelId >= 0 && s.status === 'done').map(s => s.levelId);
     const key = `${SEEN_KEY}:${activeSavedProjectId || 'default'}`;
-    const settle = setTimeout(() => {
+    const timer = setTimeout(() => {
       let seen: number[] | null = null;
       try {
         const raw = localStorage.getItem(key);
         seen = raw ? JSON.parse(raw) : null;
-        const union = Array.from(new Set([...(seen || []), ...doneIds]));
-        localStorage.setItem(key, JSON.stringify(union));
+        localStorage.setItem(key, JSON.stringify(Array.from(new Set([...(seen || []), ...doneIds]))));
       } catch {
         /* storage can be unavailable */
       }
-      if (!seen) return;
-      const fresh = doneIds.filter(id => !seen!.includes(id));
-      if (!fresh.length) return;
-      const id = fresh[fresh.length - 1];
-      setCelebrate(id);
-      setToast(id);
-      setSelected(doneIds.length >= 8 ? -1 : id);
-      setTimeout(() => setCelebrate(null), 6000);
-    }, 1200);
-    return () => clearTimeout(settle);
+      const freshIds = seen ? doneIds.filter(id => !seen!.includes(id)) : [];
+      if (freshIds.length) {
+        const id = freshIds[freshIds.length - 1];
+        setFresh(id);
+        setBanner(id);
+        setSelected(id);
+        setTimeout(() => setFresh(null), 9000);
+      }
+      setSettled(true);
+    }, 900);
+    return () => clearTimeout(timer);
   }, [stations, activeSavedProjectId]);
 
   const changeView = (v: '3d' | 'list') => {
@@ -122,10 +126,9 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
   };
 
   const showList = view === 'list' || !webgl;
-  const sel = OASIS_STATIONS.find(s => s.levelId === selected) ?? null;
+  const sel = VALLEY_LEVELS.find(v => v.levelId === selected) ?? null;
   const selState = stations.find(s => s.levelId === selected) ?? null;
   const selLevel = selected !== null && selected >= 0 ? levels.find(l => l.levelId === selected) : undefined;
-  const toastStation = OASIS_STATIONS.find(s => s.levelId === toast);
 
   const openSelected = () => {
     if (!selState || selState.status === 'locked') return;
@@ -148,8 +151,8 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">{t.dashboard.educationalPath}</h2>
           <p className="text-[#2a9d94] dark:text-[#7FDBCA] mt-1">
             {tx(
-              `${finished} of 8 places in your oasis are alive. Finish a level to bring the next one to life.`,
-              `${finished} من 8 أماكن في واحتك نابضة بالحياة. أكمل مستوى لتعيد الحياة إلى المكان التالي.`
+              `${finished} of 8 levels finished. Each level brings more of the valley to life.`,
+              `أكملت ${finished} من 8 مستويات. كل مستوى يعيد الحياة إلى جزء جديد من الوادي.`
             )}
           </p>
         </div>
@@ -162,7 +165,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
               className={`px-3 py-1.5 inline-flex items-center gap-1.5 ${!showList ? 'bg-[#2a9d94] text-white' : 'text-slate-700 dark:text-slate-200'}`}
             >
               <Box className="w-4 h-4" />
-              {tx('3D oasis', 'الواحة ثلاثية الأبعاد')}
+              {tx('3D valley', 'الوادي ثلاثي الأبعاد')}
             </button>
             <button
               role="tab"
@@ -181,48 +184,33 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
         <div>{renderList()}</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* The 3D world */}
-          <div
-            className={`relative lg:col-span-2 h-[440px] sm:h-[540px] rounded-2xl overflow-hidden border ${
-              isDark
-                ? 'bg-gradient-to-b from-[#141433] via-[#3a2252] to-[#7a4a3a] border-white/10'
-                : 'bg-gradient-to-b from-[#bfe6f2] via-[#f7ecd6] to-[#f1d9ad] border-amber-200'
-            }`}
-          >
-            <SceneBoundary fallback={<div className="p-4">{renderList()}</div>}>
-              <Suspense
-                fallback={
-                  <div className="absolute inset-0 grid place-items-center text-slate-600 dark:text-slate-300 text-sm">
-                    {tx('Building your oasis…', 'جارٍ بناء واحتك…')}
-                  </div>
-                }
-              >
-                <OasisScene
-                  stations={stations}
-                  selected={selected}
-                  onSelect={setSelected}
-                  celebrate={celebrate}
-                  isDark={isDark}
-                  isAr={isAr}
-                  zoomLevel={zoomLevel}
-                  resetSignal={resetSignal}
-                />
-              </Suspense>
+          <div className="relative lg:col-span-2 h-[460px] sm:h-[580px] rounded-2xl overflow-hidden border border-black/5 dark:border-white/10" style={{ background: SKY[timeOfDay] }}>
+            <SceneBoundary fallback={<div className="p-4 bg-white/90 dark:bg-slate-900/80 h-full overflow-auto">{renderList()}</div>}>
+              {settled ? (
+                <Suspense fallback={<Loading text={tx('Building your valley…', 'جارٍ بناء واديك…')} />}>
+                  <ValleyScene
+                    stations={stations}
+                    selected={selected}
+                    onSelect={setSelected}
+                    fresh={fresh}
+                    timeOfDay={timeOfDay}
+                    isAr={isAr}
+                    businessName={businessName}
+                    resetSignal={resetSignal}
+                    zoomSignal={zoom.n}
+                    zoomDir={zoom.dir}
+                  />
+                </Suspense>
+              ) : (
+                <Loading text={tx('Building your valley…', 'جارٍ بناء واديك…')} />
+              )}
             </SceneBoundary>
 
-            {/* Controls */}
             <div className="absolute bottom-3 end-3 flex flex-col gap-1.5">
               {[
-                { icon: Plus, label: tx('Zoom in', 'تكبير'), on: () => setZoomLevel(z => Math.min(1.8, z + 0.2)) },
-                { icon: Minus, label: tx('Zoom out', 'تصغير'), on: () => setZoomLevel(z => Math.max(0.6, z - 0.2)) },
-                {
-                  icon: RotateCcw,
-                  label: tx('Reset view', 'إعادة العرض'),
-                  on: () => {
-                    setZoomLevel(1);
-                    setResetSignal(n => n + 1);
-                  },
-                },
+                { icon: Plus, label: tx('Zoom in', 'تكبير'), on: () => setZoom(z => ({ n: z.n + 1, dir: 1 })) },
+                { icon: Minus, label: tx('Zoom out', 'تصغير'), on: () => setZoom(z => ({ n: z.n + 1, dir: -1 })) },
+                { icon: RotateCcw, label: tx('Reset view', 'إعادة العرض'), on: () => setResetSignal(n => n + 1) },
               ].map(({ icon: Icon, label, on }) => (
                 <button
                   key={label}
@@ -236,17 +224,16 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
               ))}
             </div>
             <div className="absolute bottom-3 start-3 rounded-lg bg-white/80 dark:bg-slate-900/70 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 shadow max-w-[70%]">
-              {tx('Drag to turn the oasis · click a place to open it', 'اسحب لتدوير الواحة · اضغط على مكان لفتحه')}
+              {tx('Drag to look around · click a level to fly there', 'اسحب للتجول · اضغط على مستوى للانتقال إليه')}
             </div>
-
           </div>
 
-          {/* Details of the selected place */}
+          {/* The selected level */}
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col">
             {sel && selState ? (
               <>
                 <AnimatePresence>
-                  {toastStation && toast === selected && (
+                  {banner !== null && banner === selected && (
                     <motion.div
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -256,19 +243,17 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                       <div className="flex items-start gap-2">
                         <SparklesIcon className="w-5 h-5 text-amber-500 shrink-0" />
                         <div className="flex-1 font-semibold text-slate-900 dark:text-white">
-                          {tx(`${toastStation.place.en} is alive! You just finished this level.`, `${toastStation.place.ar} نابض بالحياة! أكملت هذا المستوى للتو.`)}
+                          {tx('Level finished! Watch the valley come to life.', 'أكملت المستوى! شاهد الوادي ينبض بالحياة.')}
                         </div>
-                        <button onClick={() => setToast(null)} aria-label={tx('Close', 'إغلاق')} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                        <button onClick={() => setBanner(null)} aria-label={tx('Close', 'إغلاق')} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div className="flex items-center gap-2 text-xs font-medium text-[#2a9d94] dark:text-[#7FDBCA]">
-                  <MapIcon className="w-4 h-4" />
-                  {isAr ? sel.place.ar : sel.place.en}
-                  {sel.levelId >= 0 && <span className="text-slate-500 dark:text-slate-400">· {tx(`Level ${sel.levelId}`, `المستوى ${sel.levelId}`)}</span>}
+                <div className="text-xs font-medium text-[#2a9d94] dark:text-[#7FDBCA]">
+                  {sel.levelId >= 0 ? tx(`Level ${sel.levelId}`, `المستوى ${sel.levelId}`) : tx('Final step', 'الخطوة الأخيرة')}
                 </div>
                 <h3 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{selState.title}</h3>
                 <div
@@ -285,13 +270,14 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                 </div>
                 {selState.status !== 'locked' && (
                   <div className="mt-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                    <div className="h-full bg-[#2a9d94] rounded-full transition-all" style={{ width: `${Math.round(selState.progress * 100)}%` }} />
+                    <div className="h-full bg-[#2a9d94] rounded-full transition-all" style={{ width: `${Math.round((selState.status === 'done' ? 1 : selState.progress) * 100)}%` }} />
                   </div>
                 )}
 
-                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{isAr ? sel.alive.ar : sel.alive.en}</p>
+                <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">{tx('In the valley', 'في الوادي')}</h4>
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{isAr ? sel.change.ar : sel.change.en}</p>
 
-                <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">{tx('What you get here', 'ما تحصل عليه هنا')}</h4>
+                <h4 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">{tx('What you get in this level', 'ما تحصل عليه في هذا المستوى')}</h4>
                 <ul className="mt-2 space-y-1.5">
                   {sel.features.map(f => (
                     <li key={f.en} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
@@ -335,33 +321,38 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                 </div>
               </>
             ) : (
-              <p className="text-sm text-slate-600 dark:text-slate-300">{tx('Click a place in the oasis to see it here.', 'اضغط على مكان في الواحة لعرضه هنا.')}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{tx('Click a level in the valley to see it here.', 'اضغط على مستوى في الوادي لعرضه هنا.')}</p>
             )}
           </div>
 
-          {/* Keyboard-friendly row of places */}
-          <div className="lg:col-span-3 flex flex-wrap gap-2" aria-label={tx('Places', 'الأماكن')}>
-            {OASIS_STATIONS.map(s => {
-              const st = stations.find(x => x.levelId === s.levelId)!;
-              return (
-                <button
-                  key={s.levelId}
-                  onClick={() => setSelected(s.levelId)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-                    selected === s.levelId
-                      ? 'border-[#2a9d94] bg-[#2a9d94]/10 text-slate-900 dark:text-white'
-                      : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  {st.status === 'done' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : st.status === 'locked' ? <Lock className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5 text-amber-500" />}
-                  {s.levelId >= 0 ? `${s.levelId} · ` : '★ '}
-                  {isAr ? s.place.ar : s.place.en}
-                </button>
-              );
-            })}
+          {/* Keyboard-friendly row of levels */}
+          <div className="lg:col-span-3 flex flex-wrap gap-2" aria-label={tx('Levels', 'المستويات')}>
+            {stations.map(st => (
+              <button
+                key={st.levelId}
+                onClick={() => setSelected(st.levelId)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                  selected === st.levelId
+                    ? 'border-[#2a9d94] bg-[#2a9d94]/10 text-slate-900 dark:text-white'
+                    : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {st.status === 'done' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : st.status === 'locked' ? <Lock className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5 text-amber-500" />}
+                {st.levelId >= 0 ? `${st.levelId} · ` : '★ '}
+                {st.title}
+              </button>
+            ))}
           </div>
         </div>
       )}
     </Card>
+  );
+}
+
+function Loading({ text }: { text: string }) {
+  return (
+    <div className="absolute inset-0 grid place-items-center">
+      <div className="rounded-full bg-white/80 dark:bg-slate-900/70 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 shadow">{text}</div>
+    </div>
   );
 }

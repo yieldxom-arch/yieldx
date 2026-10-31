@@ -1,96 +1,84 @@
-// The Omani oasis journey: one place per level, joined by a falaj.
-// Each place says what comes alive there and which YieldX features the
-// level gives the user, so the map doubles as a "what you unlock" guide.
+// The study journey as a living Nizwa valley. Levels keep their real names;
+// each finished level changes something in the valley, and the panel lists
+// what the level gives the user.
 
-export interface OasisStation {
-  levelId: number; // -1 = final castle (the full study)
-  place: { en: string; ar: string };
-  alive: { en: string; ar: string };
+export type SpotKey = 'spring' | 'shop' | 'fort' | 'road' | 'workshop' | 'village' | 'gardens' | 'souq' | 'tower';
+
+export interface ValleyLevel {
+  levelId: number; // -1 = the full study
+  spot: SpotKey;
+  /** Height of the marker above the ground at that spot. */
+  markerY: number;
+  change: { en: string; ar: string };
   features: { en: string; ar: string }[];
-  /** Platform colour (top) and side colour. */
-  color: string;
-  side: string;
-  /** Position on the diorama (x, z). */
-  pos: [number, number];
 }
 
-export const OASIS_STATIONS: OasisStation[] = [
+export const VALLEY_LEVELS: ValleyLevel[] = [
   {
     levelId: 0,
-    place: { en: 'The spring', ar: 'العين' },
-    alive: { en: 'Water starts to flow into the falaj.', ar: 'يبدأ الماء بالجريان في الفلج.' },
+    spot: 'spring',
+    markerY: 2.2,
+    change: { en: 'The spring opens and water starts to flow down the falaj.', ar: 'تتفجر العين ويبدأ الماء بالجريان في الفلج.' },
     features: [
       { en: 'Choose your sector', ar: 'اختيار قطاع المشروع' },
       { en: 'Try a complete example study', ar: 'تجربة دراسة جدوى كاملة جاهزة' },
     ],
-    color: '#7cc4c9',
-    side: '#4d8f94',
-    pos: [-7.2, -4.2],
   },
   {
     levelId: 1,
-    place: { en: 'Your house', ar: 'البيت' },
-    alive: { en: 'Your house goes up with your business name on the door.', ar: 'يُبنى بيتك واسم مشروعك على الباب.' },
+    spot: 'shop',
+    markerY: 3.2,
+    change: { en: 'Your shop opens in the old quarter, with your business name on the sign.', ar: 'يُفتتح محلك في الحارة القديمة، واسم مشروعك على اللوحة.' },
     features: [
       { en: 'Omani trade-name check (rules + Invest Easy)', ar: 'فحص الاسم التجاري العُماني (القواعد + استثمر بسهولة)' },
       { en: 'Owners and shares', ar: 'الملاك ونسب الملكية' },
     ],
-    color: '#e3b778',
-    side: '#b0864c',
-    pos: [-3.4, -5.6],
   },
   {
     levelId: 2,
-    place: { en: 'The fort', ar: 'الحصن' },
-    alive: { en: 'The fort protects you: licences and contracts in place.', ar: 'الحصن يحميك: التراخيص والعقود جاهزة.' },
+    spot: 'fort',
+    markerY: 4.6,
+    change: { en: 'The fort gate opens and the flag rises: you are licensed and protected.', ar: 'تُفتح بوابة الحصن ويرتفع العلم: أصبحت مرخصاً ومحمياً.' },
     features: [
       { en: 'Licences and the authorities that issue them', ar: 'التراخيص والجهات المصدرة لها' },
       { en: 'Lease contracts and their costs', ar: 'عقود الإيجار وتكاليفها' },
     ],
-    color: '#d9a066',
-    side: '#a8743f',
-    pos: [0.6, -4.4],
   },
   {
     levelId: 3,
-    place: { en: 'The workshop', ar: 'الورشة' },
-    alive: { en: 'Lights, water and power reach your workshop.', ar: 'تصل الكهرباء والماء والإنارة إلى ورشتك.' },
+    spot: 'road',
+    markerY: 2.2,
+    change: { en: 'The road is paved and the street lamps come on.', ar: 'يُرصف الطريق وتُضاء أعمدة الإنارة.' },
     features: [
       { en: 'Location and rent', ar: 'الموقع والإيجار' },
       { en: 'Utilities and operating hours', ar: 'المرافق وساعات العمل' },
     ],
-    color: '#c9a27a',
-    side: '#94704c',
-    pos: [4.4, -2.6],
   },
   {
     levelId: 4,
-    place: { en: 'The storehouse', ar: 'المخزن' },
-    alive: { en: 'Equipment and stock arrive by caravan.', ar: 'تصل المعدات والبضائع مع القافلة.' },
+    spot: 'workshop',
+    markerY: 3.0,
+    change: { en: 'Your workshop is built and trucks deliver the equipment.', ar: 'تُبنى ورشتك وتصل الشاحنات بالمعدات.' },
     features: [
       { en: 'Equipment and assets', ar: 'المعدات والأصول' },
       { en: 'Raw materials and depreciation', ar: 'المواد الخام والإهلاك' },
     ],
-    color: '#b8956a',
-    side: '#86663f',
-    pos: [6.8, 0.8],
   },
   {
     levelId: 5,
-    place: { en: 'The majlis', ar: 'المجلس' },
-    alive: { en: 'Your team gathers in the majlis.', ar: 'يجتمع فريقك في المجلس.' },
+    spot: 'village',
+    markerY: 3.2,
+    change: { en: 'People fill the lanes: your team is in place.', ar: 'تمتلئ السكك بالناس: فريقك جاهز.' },
     features: [
       { en: 'Omanization rate', ar: 'نسبة التعمين' },
       { en: 'Salaries and social protection (14.5%)', ar: 'الرواتب والحماية الاجتماعية (14.5%)' },
     ],
-    color: '#a7c27a',
-    side: '#748f4c',
-    pos: [3.6, 3.6],
   },
   {
     levelId: 6,
-    place: { en: 'The palm grove', ar: 'بستان النخيل' },
-    alive: { en: 'The palms grow heavy with dates: your money is working.', ar: 'تثمر النخيل بالتمر: أموالك تعمل.' },
+    spot: 'gardens',
+    markerY: 3.4,
+    change: { en: 'The palm gardens turn green and heavy with dates: your money is working.', ar: 'تخضرّ بساتين النخيل وتثمر بالتمر: أموالك تعمل.' },
     features: [
       { en: 'Profit, NPV, IRR and payback', ar: 'الربح وصافي القيمة الحالية والعائد وفترة الاسترداد' },
       { en: 'Risk simulation: 8,000 possible futures', ar: 'محاكاة المخاطر: 8,000 مستقبل محتمل' },
@@ -98,32 +86,25 @@ export const OASIS_STATIONS: OasisStation[] = [
       { en: 'VAT, tax and financing survival test', ar: 'ضريبة القيمة المضافة والدخل واختبار النجاة المالية' },
       { en: 'National impact score', ar: 'مؤشر الأثر الوطني' },
     ],
-    color: '#6fae6a',
-    side: '#467e43',
-    pos: [-0.6, 5.0],
   },
   {
     levelId: 7,
-    place: { en: 'The souq', ar: 'السوق' },
-    alive: { en: 'The souq fills with customers.', ar: 'يمتلئ السوق بالزبائن.' },
+    spot: 'souq',
+    markerY: 2.6,
+    change: { en: 'The souq is busy with customers and cars.', ar: 'يزدحم السوق بالزبائن والسيارات.' },
     features: [
       { en: 'Competitors and SWOT', ar: 'المنافسون وتحليل SWOT' },
       { en: 'Products, prices and revenue', ar: 'المنتجات والأسعار والإيرادات' },
     ],
-    color: '#e08f62',
-    side: '#ad6239',
-    pos: [-4.8, 3.4],
   },
   {
     levelId: -1,
-    place: { en: 'The castle', ar: 'القلعة' },
-    alive: { en: 'The castle lights up: your full feasibility study is ready.', ar: 'تُضاء القلعة: دراسة الجدوى الكاملة جاهزة.' },
+    spot: 'tower',
+    markerY: 2.6,
+    change: { en: 'Night falls, the valley lights up and fireworks rise over the fort: your full study is ready.', ar: 'يحل الليل وتُضاء الوادي وتنطلق الألعاب النارية فوق الحصن: دراستك الكاملة جاهزة.' },
     features: [
       { en: 'Full feasibility report (Arabic / English)', ar: 'تقرير دراسة الجدوى الكامل (عربي / إنجليزي)' },
       { en: 'Certificate', ar: 'الشهادة' },
     ],
-    color: '#d6b48a',
-    side: '#a3825a',
-    pos: [-6.6, 0],
   },
 ];
