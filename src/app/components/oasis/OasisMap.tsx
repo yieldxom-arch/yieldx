@@ -1,11 +1,11 @@
 import React, { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Award, Box, Check, CheckCircle2, Circle, Clock, List, Lock, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, Star, X } from 'lucide-react';
+import { Award, Box, Check, CheckCircle2, Circle, Clock, Droplets, Flag, Hammer, List, Lock, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, Star, Sun, Tent, Trees, Truck, X } from 'lucide-react';
 import '@fontsource/noto-kufi-arabic/700.css';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
 import { Card } from '@/app/components/ui/card';
-import { VALLEY_LEVELS } from './oasisData';
+import { PLOT_ITEMS, VALLEY_LEVELS } from './oasisData';
 import type { StationState, TimeOfDay } from './ValleyScene';
 
 const ValleyScene = lazy(() => import('./ValleyScene'));
@@ -66,6 +66,10 @@ class SceneBoundary extends Component<{ fallback: React.ReactNode; children: Rea
 }
 
 const SEEN_KEY = 'yieldx_oasis_done';
+const AVATAR_KEY = 'yieldx_avatar';
+const PLOT_KEY = 'yieldx_plot_items';
+const ITEM_ICON = { tree: Trees, well: Droplets, solar: Sun, pickup: Truck, majlis: Tent, flag: Flag } as const;
+type ItemId = (typeof PLOT_ITEMS)[number]['id'];
 const VIEW_KEY = 'yieldx_map_view';
 
 const SKY: Record<TimeOfDay, string> = {
@@ -80,7 +84,7 @@ const SKY: Record<TimeOfDay, string> = {
  * `renderList` shows the classic card grid (also used if WebGL is missing).
  */
 export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) {
-  const { levels, setCurrentView, language, theme, activeSavedProjectId, moduleData, totalXP, badges } = useYieldX();
+  const { levels, setCurrentView, language, theme, activeSavedProjectId, moduleData, totalXP, badges, projectTypeData } = useYieldX();
   const t = translations[language];
   const isAr = language === 'ar';
   const isDark = theme === 'dark';
@@ -101,6 +105,50 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
   const [fresh, setFresh] = useState<number | null>(null);
   const [banner, setBanner] = useState<number | null>(null);
   const [settled, setSettled] = useState(false);
+
+  // The player's character and the pieces added to their plot (kept per study).
+  const [avatar, setAvatar] = useState<'man' | 'woman'>(() => {
+    try {
+      return localStorage.getItem(AVATAR_KEY) === 'woman' ? 'woman' : 'man';
+    } catch {
+      return 'man';
+    }
+  });
+  const plotKey = `${PLOT_KEY}:${activeSavedProjectId || 'default'}`;
+  const [plotItems, setPlotItems] = useState<ItemId[]>([]);
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(plotKey) || '[]');
+      setPlotItems(Array.isArray(raw) ? raw.filter((id: string) => PLOT_ITEMS.some(p => p.id === id)) : []);
+    } catch {
+      setPlotItems([]);
+    }
+  }, [plotKey]);
+  const [buildOpen, setBuildOpen] = useState(false);
+  const [plotFocus, setPlotFocus] = useState(0);
+  const chooseAvatar = (a: 'man' | 'woman') => {
+    setAvatar(a);
+    try {
+      localStorage.setItem(AVATAR_KEY, a);
+    } catch {
+      /* ignore */
+    }
+  };
+  const toggleItem = (id: ItemId) => {
+    setPlotItems(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      try {
+        localStorage.setItem(plotKey, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+  const openBuild = () => {
+    setBuildOpen(o => !o);
+    if (!buildOpen) setPlotFocus(n => n + 1);
+  };
 
   const stations: StationState[] = useMemo(() => {
     const done = levels.filter(l => l.completed).length;
@@ -426,6 +474,10 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                     zoomDir={zoom.dir}
                     current={current}
                     panelSide={wide ? (isAr ? 'right' : 'left') : 'none'}
+                    projectKind={projectTypeData?.type ?? 'commercial'}
+                    plotItems={plotItems.filter(id => totalXP >= (PLOT_ITEMS.find(p => p.id === id)?.xp ?? Infinity))}
+                    avatar={avatar}
+                    plotFocus={plotFocus}
                   />
                 </Suspense>
               ) : (
@@ -458,7 +510,94 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                   {earnedBadges}
                 </div>
               )}
+              <div className="h-7 w-px" style={{ background: 'rgba(244,240,231,.2)' }} />
+              <button
+                onClick={openBuild}
+                aria-expanded={buildOpen}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-bold hover:brightness-110"
+                style={{ background: buildOpen ? C.gold : C.falaj, color: buildOpen ? C.charcoal : '#fff' }}
+              >
+                <Hammer className="w-3.5 h-3.5" />
+                {tx('Your plot', 'أرضك')}
+              </button>
             </div>
+
+            {/* Your plot: add pieces with XP, choose your character */}
+            <AnimatePresence>
+              {buildOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="absolute z-50 top-16 end-3 w-[300px] max-w-[calc(100%-1.5rem)] rounded-2xl p-3 shadow-2xl backdrop-blur-md text-sm"
+                  style={{ background: 'rgba(37,44,42,.9)', border: '1px solid rgba(215,184,137,.3)', color: C.limestone }}
+                  dir={isAr ? 'rtl' : 'ltr'}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold" style={heading}>
+                      {tx('Build your plot', 'ابنِ أرضك')}
+                    </div>
+                    <button onClick={() => setBuildOpen(false)} aria-label={tx('Close', 'إغلاق')} className="opacity-70 hover:opacity-100">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs opacity-80">
+                    {tx('Your business grows here with every level. Add more with the XP you earn.', 'ينمو مشروعك هنا مع كل مستوى. أضف المزيد بنقاط الخبرة التي تكسبها.')}
+                  </p>
+                  <ul className="mt-3 space-y-1.5">
+                    {PLOT_ITEMS.map(item => {
+                      const Icon = ITEM_ICON[item.id];
+                      const unlocked = totalXP >= item.xp;
+                      const added = plotItems.includes(item.id);
+                      return (
+                        <li key={item.id} className="flex items-center gap-2.5 rounded-xl px-2.5 py-2" style={{ background: added ? 'rgba(35,156,145,.22)' : 'rgba(244,240,231,.06)' }}>
+                          <span className="grid place-items-center w-8 h-8 rounded-lg shrink-0" style={{ background: unlocked ? 'rgba(201,162,39,.2)' : 'rgba(244,240,231,.08)' }}>
+                            <Icon className="w-4 h-4" style={{ color: unlocked ? '#f1d27a' : 'rgba(244,240,231,.45)' }} />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-semibold truncate">{isAr ? item.ar : item.en}</span>
+                            <span className="block text-[11px] opacity-75">{tx(`${item.xp} XP`, `${item.xp} نقطة`)}</span>
+                          </span>
+                          {unlocked ? (
+                            <button
+                              onClick={() => toggleItem(item.id)}
+                              className="rounded-lg px-2.5 py-1 text-xs font-bold"
+                              style={{ background: added ? 'transparent' : C.falaj, border: `1px solid ${added ? 'rgba(244,240,231,.35)' : C.falaj}`, color: '#fff' }}
+                            >
+                              {added ? tx('Remove', 'إزالة') : tx('Add', 'أضف')}
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] opacity-70">
+                              <Lock className="w-3.5 h-3.5" />
+                              {tx(`${item.xp - totalXP} more`, `${item.xp - totalXP} متبقية`)}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(244,240,231,.15)' }}>
+                    <div className="text-xs font-semibold opacity-90">{tx('Your character', 'شخصيتك')}</div>
+                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                      {([
+                        ['man', tx('Dishdasha', 'دشداشة')],
+                        ['woman', tx('Abaya', 'عباءة')],
+                      ] as const).map(([id, label]) => (
+                        <button
+                          key={id}
+                          onClick={() => chooseAvatar(id)}
+                          aria-pressed={avatar === id}
+                          className="rounded-lg px-2 py-1.5 text-xs font-bold"
+                          style={{ background: avatar === id ? C.gold : 'rgba(244,240,231,.08)', color: avatar === id ? C.charcoal : C.limestone }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Mission card over the map on wide screens */}
             {wide && <div className="absolute z-40 top-3 bottom-3 start-3 w-[340px]">{missionCard}</div>}

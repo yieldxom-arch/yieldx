@@ -1,0 +1,5 @@
+Characters: KayKit Adventurers Character Pack 1.0 by Kay Lousberg (www.kaylousberg.com)
+License: Creative Commons Zero (CC0) - free for personal, educational and commercial use.
+Changes for YieldX: weapons, hats and props removed; clothing recoloured into
+Omani dress (dishdasha, abaya, shayla); animations trimmed into omani-anims.glb.
+The kumma and massar are drawn in code (src/app/components/oasis/valley/Characters.tsx).

@@ -1,18 +1,23 @@
 // The study journey as a living miniature of a Nizwa valley.
 // Loaded lazily; only rendered when WebGL is available.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { CameraControls, Environment, Html, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Bloom, EffectComposer, N8AO, SMAA, TiltShift2, ToneMapping, Vignette } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { Boxes, Building2, Check, Coins, FileText, Layers, Lock, Settings2, Shield, Star, Store, Users } from 'lucide-react';
 import { VALLEY_LEVELS } from './oasisData';
-import { SPOTS, heightAt } from './valley/world';
+import { PLOT, SPOTS, heightAt } from './valley/world';
 import { Falaj, GardenWalls, Ground, Palms, Scrub, Waters } from './valley/Nature';
 import { Fort, Houses, Road, Shop, Souq, Watchtower, Workshop } from './valley/Town';
 import { Camels, Fireworks, ParkedCars, People, Traffic } from './valley/Life';
 import { CurrentRing, Trail, type SegmentState } from './valley/Trail';
+import { Player, Villagers, preloadCharacters, type PlayerTarget } from './valley/Characters';
+import { VILLAGERS } from './valley/cast';
+import { YourPlot, type PlotItemId, type ProjectKind } from './valley/Plot';
+
+preloadCharacters();
 
 export type StationStatus = 'locked' | 'active' | 'done';
 
@@ -40,6 +45,14 @@ export interface ValleySceneProps {
   current: number | null;
   /** Where the mission card covers the map, so the camera can frame around it. */
   panelSide: 'left' | 'right' | 'none';
+  /** The user's project type: decides the main building on their plot. */
+  projectKind?: ProjectKind;
+  /** Pieces the user has added to their plot. */
+  plotItems?: PlotItemId[];
+  /** The player's character. */
+  avatar?: 'man' | 'woman';
+  /** Increases each time the user opens the plot; flies the camera there. */
+  plotFocus?: number;
 }
 
 const ICONS = [Layers, Building2, Shield, Settings2, Boxes, Users, Coins, Store];
@@ -141,6 +154,7 @@ function CameraRig({
   zoomSignal,
   zoomDir,
   panelSide,
+  plotFocus,
 }: {
   selected: number | null;
   fresh: number | null;
@@ -148,6 +162,7 @@ function CameraRig({
   zoomSignal: number;
   zoomDir: 1 | -1;
   panelSide: 'left' | 'right' | 'none';
+  plotFocus: number;
 }) {
   const ref = useRef<CameraControls>(null);
   const first = useRef(true);
@@ -192,6 +207,14 @@ function CameraRig({
   }, [resetSignal]);
 
   useEffect(() => {
+    if (plotFocus <= 0) return;
+    const ty = PLOT.ground + 0.4;
+    // the plot panel covers the other side, so keep the plot in the middle
+    ref.current?.setFocalOffset(0, 0, 0, true);
+    ref.current?.setLookAt(PLOT.x + 1.6, ty + 8.6, PLOT.z + 6.6, PLOT.x, ty, PLOT.z + 0.2, true);
+  }, [plotFocus]);
+
+  useEffect(() => {
     if (zoomSignal > 0) ref.current?.dolly(zoomDir * 5, true);
   }, [zoomSignal]);
 
@@ -222,7 +245,24 @@ function SceneEnv({ timeOfDay }: { timeOfDay: TimeOfDay }) {
 
 // ─── Scene ─────────────────────────────────────────────────────────────────────
 
-export default function ValleyScene({ stations, selected, onSelect, fresh, timeOfDay, isAr, businessName, resetSignal, zoomSignal, zoomDir, current, panelSide }: ValleySceneProps) {
+export default function ValleyScene({
+  stations,
+  selected,
+  onSelect,
+  fresh,
+  timeOfDay,
+  isAr,
+  businessName,
+  resetSignal,
+  zoomSignal,
+  zoomDir,
+  current,
+  panelSide,
+  projectKind = 'commercial',
+  plotItems = [],
+  avatar = 'man',
+  plotFocus = 0,
+}: ValleySceneProps) {
   const [quality, setQuality] = useState<'high' | 'low'>(() =>
     typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 8) <= 4 ? 'low' : 'high'
   );
@@ -244,6 +284,20 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
     return Array.from({ length: 8 }, (_, k) => (stopDone[k + 1] ? 'done' : stopDone[k] ? 'current' : 'locked'));
   }, [done, final, current]);
   const currentSpot = current !== null ? spotOf(current) : null;
+
+  // The player walks to the level you pick, or to your plot when you open it.
+  const spotKey = (lv: number | null): PlayerTarget => {
+    const v = VALLEY_LEVELS.find(l => l.levelId === lv) ?? VALLEY_LEVELS.find(l => l.levelId === (current ?? 0))!;
+    return v.spot;
+  };
+  const [playerTarget, setPlayerTarget] = useState<PlayerTarget>(() => (plotFocus > 0 ? 'plot' : spotKey(selected ?? current)));
+  useEffect(() => {
+    if (selected !== null) setPlayerTarget(spotKey(selected));
+  }, [selected]);
+  useEffect(() => {
+    if (plotFocus > 0) setPlayerTarget('plot');
+  }, [plotFocus]);
+  const freshSpot = fresh !== null ? spotKey(fresh) : null;
 
   return (
     <Canvas
@@ -289,6 +343,12 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
       <Shop open={done[1]} animate={anim(1)} delay={FLY_DELAY} name={businessName} night={night} />
       <Workshop built={done[4]} animate={anim(4)} delay={FLY_DELAY} night={night} />
       <Road paved={done[3]} animate={anim(3)} delay={FLY_DELAY} lampsOn={lampsOn} />
+      <YourPlot done={done} kind={projectKind} items={plotItems} name={businessName} night={night} fresh={fresh} delay={FLY_DELAY} isAr={isAr} />
+
+      <Suspense fallback={null}>
+        <Villagers list={VILLAGERS} levelsDone={done} />
+        <Player key={avatar} look={avatar} target={playerTarget} cheer={freshSpot !== null && freshSpot === playerTarget} />
+      </Suspense>
 
       <People levelsDone={done} fresh={fresh} delay={FLY_DELAY} />
       {traffic > 0 && <Traffic count={traffic} lights={lampsOn} />}
@@ -300,7 +360,7 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
         <Marker key={s.levelId} state={s} selected={selected === s.levelId} current={current === s.levelId} onSelect={onSelect} isAr={isAr} />
       ))}
 
-      <CameraRig selected={selected} fresh={fresh} resetSignal={resetSignal} zoomSignal={zoomSignal} zoomDir={zoomDir} panelSide={panelSide} />
+      <CameraRig selected={selected} fresh={fresh} resetSignal={resetSignal} zoomSignal={zoomSignal} zoomDir={zoomDir} panelSide={panelSide} plotFocus={plotFocus} />
 
       {quality === 'high' && (
         <EffectComposer multisampling={0}>

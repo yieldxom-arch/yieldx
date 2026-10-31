@@ -98,6 +98,11 @@ export function zoneOf(x: number, z: number, h: number) {
   return best;
 }
 
+/** The user's own plot, in front of the old quarter where the road ends. */
+export const PLOT = { x: 1.6, z: 7.0, w: 4.0, d: 2.2, ground: 0.09 };
+/** Where the drive from the road reaches the plot gate. */
+export const PLOT_GATE = new THREE.Vector2(PLOT.x - 0.6, PLOT.z - PLOT.d / 2);
+
 export const FALAJ_POINTS: [number, number][] = [
   [-14, -5.4],
   [-11.8, -3.9],
@@ -199,6 +204,12 @@ export function heightAt(x: number, z: number): number {
   const flatR = Math.exp(-(distToRoad(x, z) ** 2) / 0.5) * (1 - m);
   const target = 0.35 + (fbm(x * 0.05, z * 0.05) - 0.5) * 0.3;
   h = h * (1 - Math.max(flatF, flatR) * 0.65) + target * Math.max(flatF, flatR) * 0.65;
+
+  // a level pad for the user's plot
+  const px = Math.max(0, Math.abs(x - PLOT.x) - PLOT.w / 2);
+  const pz = Math.max(0, Math.abs(z - PLOT.z) - PLOT.d / 2);
+  const flatP = Math.exp(-(px * px + pz * pz) / 0.5);
+  h = h * (1 - flatP) + PLOT.ground * flatP;
 
   return h;
 }
@@ -396,13 +407,17 @@ export interface Spot {
 }
 
 /** Places that buildings use, so trees and rocks keep away from them. */
-export const BLOCKERS: { x: number; z: number; r: number }[] = [
+/** Areas kept free of trees and houses. `open` ones can still be walked on. */
+export const BLOCKERS: { x: number; z: number; r: number; open?: boolean }[] = [
   { x: SPOTS.fort.x, z: SPOTS.fort.y, r: 2.6 },
   { x: SPOTS.shop.x, z: SPOTS.shop.y, r: 1.2 },
   { x: SPOTS.souq.x, z: SPOTS.souq.y, r: 1.9 },
   { x: SPOTS.workshop.x, z: SPOTS.workshop.y, r: 2.0 },
   { x: SPOTS.spring.x, z: SPOTS.spring.y, r: 1.0 },
   { x: SPOTS.tower.x, z: SPOTS.tower.y, r: 0.9 },
+  { x: PLOT.x, z: PLOT.z, r: 2.4 },
+  // a clear front yard so the plot can be seen from the usual camera angle
+  { x: PLOT.x + 0.3, z: PLOT.z + 2.7, r: 2.2, open: true },
 ];
 
 export function blocked(x: number, z: number, pad = 0) {

@@ -148,7 +148,7 @@ export function Ground({ green, zoneStates }: { green: number; zoneStates: numbe
             int zi = int(aZone + 0.5);
             vLock = uLock[zi];
             float st = uState[zi];
-            vec3 c = st > 2.5 ? vec3(0.0) : st > 1.5 ? vec3(0.45, 2.3, 1.85) : (st > 0.5 ? vec3(3.2, 2.1, 0.45) * (0.65 + 0.35 * sin(uTime * 3.0)) : vec3(0.0));
+            vec3 c = st > 2.5 ? vec3(0.0) : st > 1.5 ? vec3(0.02, 0.16, 0.13) : (st > 0.5 ? vec3(0.95, 0.62, 0.12) * (0.6 + 0.4 * sin(uTime * 3.0)) : vec3(0.0));
             vEdgeCol = c * aEdge;
           }`
         );

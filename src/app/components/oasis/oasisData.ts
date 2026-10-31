@@ -108,3 +108,13 @@ export const VALLEY_LEVELS: ValleyLevel[] = [
     ],
   },
 ];
+
+/** Pieces the user can add to their own plot once they have enough XP. */
+export const PLOT_ITEMS: { id: 'tree' | 'well' | 'solar' | 'pickup' | 'majlis' | 'flag'; xp: number; en: string; ar: string }[] = [
+  { id: 'tree', xp: 50, en: 'Shade tree and bench', ar: 'شجرة ظل ومقعد' },
+  { id: 'well', xp: 300, en: 'Water well', ar: 'بئر ماء' },
+  { id: 'solar', xp: 450, en: 'Solar panels', ar: 'ألواح شمسية' },
+  { id: 'pickup', xp: 650, en: 'Delivery pickup', ar: 'سيارة توصيل' },
+  { id: 'majlis', xp: 1000, en: 'Majlis tent', ar: 'خيمة المجلس' },
+  { id: 'flag', xp: 1300, en: 'Flag and lights', ar: 'العلم والإضاءة' },
+];
