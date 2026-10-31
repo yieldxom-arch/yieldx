@@ -56,9 +56,9 @@ Your YieldX platform is ready to deploy! Here's what's been prepared:
 
 | Role | Email | Password | Features |
 |------|-------|----------|----------|
-| **Teacher** | demo.teacher@yieldx.com | demo123 | Premium tier, create cohorts, grade students |
-| **Student** | demo.student@yieldx.com | demo123 | Free tier, 2450 XP, 5-day streak, Level 0 unlocked |
-| **Admin** | admin@yieldx.com | admin123 | Enterprise tier, full access |
+| **Teacher** | demo.teacher@yieldx.com | <your-password> | Premium tier, create cohorts, grade students |
+| **Student** | demo.student@yieldx.com | <your-password> | Free tier, 2450 XP, 5-day streak, Level 0 unlocked |
+| **Admin** | admin@yieldx.com | <your-password> | Enterprise tier, full access |
 
 ---
 
@@ -105,7 +105,7 @@ Step B: Run /CREATE_DEMO_ACCOUNTS.sql
 ### **3️⃣ Test Login** (1 min)
 ```
 Email: demo.teacher@yieldx.com
-Password: demo123
+Password: <your-password>
 ```
 
 **Total Time: ~6 minutes** ⏱️

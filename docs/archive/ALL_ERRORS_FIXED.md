@@ -80,7 +80,7 @@ status: ✅ All users have profiles
 ### **Step 2: Test Login** (30 seconds)
 
 1. **Refresh your YieldX app** (Ctrl/Cmd + R)
-2. Login with: `demo.teacher@yieldx.com` / `demo123`
+2. Login with: `demo.teacher@yieldx.com` / `<your-password>`
 3. ✅ **Should work perfectly now!**
 
 ---

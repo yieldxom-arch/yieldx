@@ -30,11 +30,11 @@ The demo teacher account exists in Supabase Auth but doesn't have a profile in t
 1. Click **"Add user"** → **"Create new user"**
 2. Fill in:
    - **Email:** `demo.teacher@yieldx.com`
-   - **Password:** `demo123`
-   - **Confirm Password:** `demo123`
+   - **Password:** `<your-password>`
+   - **Confirm Password:** `<your-password>`
    - **Auto Confirm User:** ✅ **YES** (IMPORTANT!)
 3. Click **"Create user"**
-4. Repeat for `demo.student@yieldx.com` / `demo123`
+4. Repeat for `demo.student@yieldx.com` / `<your-password>`
 
 ### **Step 3: Get User IDs**
 
@@ -154,7 +154,7 @@ You should see:
 3. Select **"Lecturer Login"**
 4. Enter:
    - **Email:** `demo.teacher@yieldx.com`
-   - **Password:** `demo123`
+   - **Password:** `<your-password>`
 5. Click **"Login"**
 
 ✅ **You should now see the teacher dashboard!**
@@ -179,7 +179,7 @@ If you see `Profile fetch error: Row not found`, it means the profile wasn't cre
 The auth user doesn't exist or password is wrong:
 - Make sure you created the auth user in Step 2B
 - Make sure **Auto Confirm User** was checked
-- Try password `demo123` (case sensitive)
+- Try password `<your-password>` (case sensitive)
 
 ### **"Role mismatch" warning?**
 

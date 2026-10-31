@@ -149,7 +149,7 @@ Dashboard (Student/Teacher/Admin)
 ```typescript
 // User enters:
 - Email: demo.student@yieldx.com
-- Password: demo123
+- Password: <your-password>
 - Role: Student
 ```
 

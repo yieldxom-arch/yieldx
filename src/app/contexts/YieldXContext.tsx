@@ -13,9 +13,9 @@ import { translations } from './translations';
 // ═══════════════════════════════════════════════════════════════════════════════
 // Projects are persisted using a dual-layer approach for reliability:
 // 
-// 1. PRIMARY: Supabase KV Store (Server-side)
-//    - Projects are saved to server via POST /projects
-//    - Projects are loaded from server on login via GET /projects?userId=...
+// 1. PRIMARY: Supabase table saved_projects (main project, owner-only RLS)
+//    - Projects are upserted with the signed-in user's session
+//    - Projects are loaded on login for that user only
 //    - Auto-save syncs changes every 3 seconds to server
 // 
 // 2. FALLBACK: localStorage (Client-side)
@@ -24,9 +24,9 @@ import { translations } from './translations';
 //    - Key format: `yieldx_saved_projects_{userId}`
 // 
 // FLOW:
-// - Save: syncProjectToServer() → Supabase KV + localStorage
+// - Save: syncProjectToServer() → Supabase table saved_projects + localStorage
 // - Load: useEffect watches user.id → fetchProjectsFromServer() → fallback to localStorage
-// - Delete: deleteProjectFromServer() → Supabase KV + remove from state
+// - Delete: deleteProjectFromServer() → Supabase table saved_projects + remove from state
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Import revolutionary features types
@@ -37,68 +37,97 @@ import type { NFTCertificate } from '@/app/types/nft-certificates';
 // Import demo student data
 import { getDemoStudentData, isDemoStudent, DEMO_STUDENT_PROGRESS } from '@/app/data/demoStudentData';
 
-// ─── Hybrid server helpers ────────────────────────────────────────────────────
-const SERVER_BASE = `https://hwbpgmbcasgdvhbofauc.supabase.co/functions/v1/make-server-a05faef1`;
-const ANON_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3YnBnbWJjYXNnZHZoYm9mYXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDk4MjYsImV4cCI6MjA4NTAyNTgyNn0.TWCsZW9kLAJ01tIxsMKayKElWennorfBz-u_lQfH6gg`;
-const AUTH_HEADERS = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${ANON_KEY}`,
-};
+// ─── Saved-study sync ─────────────────────────────────────────────────────────
+// Studies are saved in the main Supabase project, table `saved_projects`
+// (one row per study). Row-level security lets each signed-in user read and
+// write only their own rows. localStorage keeps a copy for offline use, and
+// failed writes wait in a small queue (one entry per study) until next login.
+const PROJECTS_TABLE = 'saved_projects';
+const PENDING_KEY = 'yieldx_pending_sync';
 
-function queuePendingSync(op: any) {
+type PendingOp =
+  | { type: 'save_project'; project: any; queuedAt?: number }
+  | { type: 'delete_project'; projectId: string; queuedAt?: number };
+
+function opProjectId(op: PendingOp): string {
+  return String(op.type === 'save_project' ? op.project?.id : op.projectId);
+}
+
+function queuePendingSync(op: PendingOp) {
   try {
-    const pending = JSON.parse(localStorage.getItem('yieldx_pending_sync') || '[]');
-    pending.push({ ...op, queuedAt: Date.now() });
-    localStorage.setItem('yieldx_pending_sync', JSON.stringify(pending));
+    const pending: PendingOp[] = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    // Only the latest operation per study matters.
+    const rest = pending.filter((p) => opProjectId(p) !== opProjectId(op));
+    rest.push({ ...op, queuedAt: Date.now() });
+    localStorage.setItem(PENDING_KEY, JSON.stringify(rest));
   } catch (e) {}
 }
 
-async function syncProjectToServer(project: any): Promise<void> {
-  if (!navigator.onLine) {
-    queuePendingSync({ type: 'save_project', project });
-    return;
-  }
+async function signedInUserId(): Promise<string | null> {
   try {
-    await fetch(`${SERVER_BASE}/projects`, {
-      method: 'POST',
-      headers: AUTH_HEADERS,
-      body: JSON.stringify({ project }),
-    });
-    console.log('☁️ Project synced to server:', project.id);
-  } catch (e) {
-    console.warn('⚠️ Server sync failed, queuing:', e);
-    queuePendingSync({ type: 'save_project', project });
+    const { data } = await sbClient.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
   }
 }
 
-async function deleteProjectFromServer(userId: string, projectId_: string): Promise<void> {
-  if (!navigator.onLine) {
-    queuePendingSync({ type: 'delete_project', userId, projectId: projectId_ });
-    return;
+/** true = done (or nothing to do), false = failed and worth retrying later */
+async function writeOp(op: PendingOp): Promise<boolean> {
+  const uid = await signedInUserId();
+  if (!uid) return true; // demo mode / signed out: localStorage only
+  const id = opProjectId(op);
+  if (!id || id === 'undefined') return true;
+  const { error } =
+    op.type === 'save_project'
+      ? await sbClient
+          .from(PROJECTS_TABLE)
+          .upsert({ user_id: uid, id, data: op.project, updated_at: new Date().toISOString() }, { onConflict: 'user_id,id' })
+      : await sbClient.from(PROJECTS_TABLE).delete().eq('user_id', uid).eq('id', id);
+  if (!error) return true;
+  // Table not created yet: retrying will not help, the local copy stays.
+  if (error.code === 'PGRST205' || error.code === '42P01') {
+    console.warn(`⚠️ Table ${PROJECTS_TABLE} is missing; study kept on this device only.`);
+    return true;
   }
+  console.warn('⚠️ Study sync failed, will retry:', error.message);
+  return false;
+}
+
+async function syncProjectToServer(project: any): Promise<void> {
+  const op: PendingOp = { type: 'save_project', project };
+  if (!navigator.onLine) return queuePendingSync(op);
   try {
-    await fetch(`${SERVER_BASE}/projects/${projectId_}?userId=${userId}`, {
-      method: 'DELETE',
-      headers: AUTH_HEADERS,
-    });
-    console.log('☁️ Project deleted from server:', projectId_);
+    if (!(await writeOp(op))) queuePendingSync(op);
   } catch (e) {
-    console.warn('⚠️ Server delete failed, queuing:', e);
-    queuePendingSync({ type: 'delete_project', userId, projectId: projectId_ });
+    console.warn('⚠️ Study sync failed, queuing:', e);
+    queuePendingSync(op);
+  }
+}
+
+async function deleteProjectFromServer(_userId: string, projectId_: string): Promise<void> {
+  const op: PendingOp = { type: 'delete_project', projectId: projectId_ };
+  if (!navigator.onLine) return queuePendingSync(op);
+  try {
+    if (!(await writeOp(op))) queuePendingSync(op);
+  } catch (e) {
+    console.warn('⚠️ Study delete failed, queuing:', e);
+    queuePendingSync(op);
   }
 }
 
 async function fetchProjectsFromServer(userId: string): Promise<any[]> {
   if (!navigator.onLine) return [];
   try {
-    const res = await fetch(`${SERVER_BASE}/projects?userId=${userId}`, {
-      headers: AUTH_HEADERS,
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.projects || [];
+    const { data, error } = await sbClient
+      .from(PROJECTS_TABLE)
+      .select('data')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+    if (error || !Array.isArray(data)) return [];
+    return data.map((row: any) => row.data).filter(Boolean);
   } catch (e) {
-    console.warn('⚠️ Could not fetch projects from server:', e);
+    console.warn('⚠️ Could not fetch studies from Supabase:', e);
     return [];
   }
 }
@@ -106,30 +135,18 @@ async function fetchProjectsFromServer(userId: string): Promise<any[]> {
 async function flushPendingSync(): Promise<void> {
   if (!navigator.onLine) return;
   try {
-    const pending = JSON.parse(localStorage.getItem('yieldx_pending_sync') || '[]');
+    const pending: PendingOp[] = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
     if (pending.length === 0) return;
-    console.log(`🔄 Syncing ${pending.length} pending operation(s) to server...`);
-    const remaining: any[] = [];
+    const remaining: PendingOp[] = [];
     for (const op of pending) {
       try {
-        if (op.type === 'save_project') {
-          await fetch(`${SERVER_BASE}/projects`, {
-            method: 'POST',
-            headers: AUTH_HEADERS,
-            body: JSON.stringify({ project: op.project }),
-          });
-        } else if (op.type === 'delete_project') {
-          await fetch(`${SERVER_BASE}/projects/${op.projectId}?userId=${op.userId}`, {
-            method: 'DELETE',
-            headers: AUTH_HEADERS,
-          });
-        }
+        if (!(await writeOp(op))) remaining.push(op);
       } catch (e) {
         remaining.push(op);
       }
     }
-    localStorage.setItem('yieldx_pending_sync', JSON.stringify(remaining));
-    if (remaining.length === 0) console.log('✅ All pending operations synced to Supabase!');
+    localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
+    if (remaining.length === 0) console.log('✅ All pending studies synced to Supabase');
   } catch (e) {}
 }
 
@@ -1189,20 +1206,6 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    // Expose migration helper so `runOrganizationRoleMigration()` actually works in the browser console.
-    (window as any).runOrganizationRoleMigration = async () => {
-      console.log('🔧 Running organization role migration...');
-      try {
-        const res = await fetch(`${SERVER_BASE}/run-migration`, { method: 'POST', headers: AUTH_HEADERS });
-        const result = await res.json();
-        if (result.success) console.log('✅ Migration complete:', result.message);
-        else console.error('❌ Migration failed:', result.error);
-        return result;
-      } catch (e: any) {
-        console.error('❌ Migration request failed:', e.message);
-      }
-    };
-
     const initializeAuth = async () => {
       try {
         const { data: sessionData, error: sessionError } = await sbClient.auth.getSession();
@@ -1426,11 +1429,14 @@ export function YieldXProvider({ children }: { children: ReactNode }) {
       const userMeta = data.user.user_metadata || {};
 
       // Build a minimal user from auth metadata immediately — no DB round-trip.
+      // Users can edit their own auth metadata, so it never grants admin:
+      // admin comes only from the users table, loaded just below.
+      const metaRole = normalizeUserRole(userMeta.role || role);
       const immediateUser: User = {
         id: supabaseId,
         name: (userMeta.full_name as string) || email.split('@')[0],
         email,
-        role: normalizeUserRole(userMeta.role || role),
+        role: metaRole === 'admin' ? 'student' : metaRole,
         subscriptionTier: undefined,
         maxProjects: 1,
       };

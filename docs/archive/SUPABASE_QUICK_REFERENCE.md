@@ -28,7 +28,7 @@ import { authService } from '/utils/supabase/services';
 const handleSignUp = async () => {
   const { success, user, error } = await authService.signUp(
     'user@example.com',
-    'password123',
+    '<your-password>',
     'John Doe',
     'student'
   );
@@ -46,7 +46,7 @@ const handleSignUp = async () => {
 const handleSignIn = async () => {
   const { success, user, profile, error } = await authService.signIn(
     'demo.student@yieldx.com',
-    'demo123'
+    '<your-password>'
   );
   
   if (success) {
@@ -94,7 +94,7 @@ function MyComponent() {
           <button onClick={signOut}>Logout</button>
         </>
       ) : (
-        <button onClick={() => signIn('demo@yieldx.com', 'demo123')}>
+        <button onClick={() => signIn('demo@yieldx.com', '<your-password>')}>
           Login
         </button>
       )}

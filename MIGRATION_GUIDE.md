@@ -111,7 +111,7 @@ const login = async (email: string, password: string, role: UserRole): Promise<b
 
 ### **Step 3: Test Login**
 1. Open YieldX
-2. Login with `demo.student@yieldx.com` / `demo123`
+2. Login with `demo.student@yieldx.com` / `<your-password>`
 3. Verify user data loads from Supabase
 4. Check browser console for success messages
 

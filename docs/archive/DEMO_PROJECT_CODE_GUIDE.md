@@ -334,7 +334,7 @@ if (isDemoCode(joinCode)) {  // DEMO2024 detected!
 1. **Login as any student**
    ```
    Email: demo.student@yieldx.com
-   Password: demo123
+   Password: <your-password>
    Role: Student
    ```
 

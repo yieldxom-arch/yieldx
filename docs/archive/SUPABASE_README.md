@@ -89,9 +89,9 @@ This package provides full Supabase backend integration for the YieldX gamified 
 1. Go to **Authentication** → **Users**
 2. Click **Add user** → **Create new user**
 3. Create these accounts:
-   - `demo.student@yieldx.com` / `demo123` (Student)
-   - `demo.teacher@yieldx.com` / `demo123` (Teacher)
-   - `admin@yieldx.com` / `admin123` (Admin)
+   - `demo.student@yieldx.com` / `<your-password>` (Student)
+   - `demo.teacher@yieldx.com` / `<your-password>` (Teacher)
+   - `admin@yieldx.com` / `<your-password>` (Admin)
 4. Enable **Auto Confirm User** for each
 
 ### **3. Link Auth to Database**
@@ -119,7 +119,7 @@ Open browser console and test:
 import { authService } from '/utils/supabase/services';
 
 // Test login
-const result = await authService.signIn('demo.student@yieldx.com', 'demo123');
+const result = await authService.signIn('demo.student@yieldx.com', '<your-password>');
 console.log('Login result:', result);
 ```
 
@@ -136,7 +136,7 @@ function LoginPage() {
   const { signIn, user, loading } = useSupabaseAuth();
   
   const handleLogin = async () => {
-    const result = await signIn('demo@yieldx.com', 'demo123');
+    const result = await signIn('demo@yieldx.com', '<your-password>');
     if (result.success) {
       console.log('Logged in!');
     }
@@ -350,7 +350,7 @@ export const publicAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 // Browser console
 import { authService } from '/utils/supabase/services';
 
-const test = await authService.signIn('demo.student@yieldx.com', 'demo123');
+const test = await authService.signIn('demo.student@yieldx.com', '<your-password>');
 console.log('Test result:', test);
 ```
 
