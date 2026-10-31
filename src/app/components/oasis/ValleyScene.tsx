@@ -6,12 +6,13 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { CameraControls, Environment, Html, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Bloom, EffectComposer, N8AO, SMAA, TiltShift2, ToneMapping, Vignette } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
-import { Boxes, Building2, Coins, FileText, Layers, Settings2, Shield, Store, Users } from 'lucide-react';
+import { Boxes, Building2, Check, Coins, FileText, Layers, Lock, Settings2, Shield, Star, Store, Users } from 'lucide-react';
 import { VALLEY_LEVELS } from './oasisData';
 import { SPOTS, heightAt } from './valley/world';
 import { Falaj, GardenWalls, Ground, Palms, Scrub, Waters } from './valley/Nature';
 import { Fort, Houses, Road, Shop, Souq, Watchtower, Workshop } from './valley/Town';
 import { Camels, Fireworks, ParkedCars, People, Traffic } from './valley/Life';
+import { CurrentRing, Trail, type SegmentState } from './valley/Trail';
 
 export type StationStatus = 'locked' | 'active' | 'done';
 
@@ -35,10 +36,14 @@ export interface ValleySceneProps {
   resetSignal: number;
   zoomSignal: number; // positive count of zoom presses; sign of last press below
   zoomDir: 1 | -1;
+  /** The level the user should do next (null when everything is done). */
+  current: number | null;
+  /** Where the mission card covers the map, so the camera can frame around it. */
+  panelSide: 'left' | 'right' | 'none';
 }
 
 const ICONS = [Layers, Building2, Shield, Settings2, Boxes, Users, Coins, Store];
-const OVERVIEW = { pos: [15, 31, 47] as const, target: [1.5, -1.0, 0.8] as const };
+const OVERVIEW = { pos: [16, 33, 50] as const, target: [1.5, -1.0, 0.8] as const };
 const FLY_DELAY = 1.5;
 
 function spotOf(levelId: number) {
@@ -50,23 +55,23 @@ function spotOf(levelId: number) {
 
 // ─── Level markers ─────────────────────────────────────────────────────────────
 
-function Marker({ state, selected, onSelect, isAr }: { state: StationState; selected: boolean; onSelect: (id: number) => void; isAr: boolean }) {
+const PALETTE = { palm: '#174D3B', falaj: '#239C91', sand: '#D7B889', terracotta: '#A76542', limestone: '#F4F0E7', charcoal: '#252C2A', gold: '#C9A227' };
+
+function Marker({ state, selected, current, onSelect, isAr }: { state: StationState; selected: boolean; current: boolean; onSelect: (id: number) => void; isAr: boolean }) {
   const [hover, setHover] = useState(false);
   const { x, z, ground, markerY } = useMemo(() => spotOf(state.levelId), [state.levelId]);
   const Icon = state.levelId >= 0 ? ICONS[state.levelId] : FileText;
-  const showLabel = selected || hover || state.status === 'active';
-  const pct = Math.round(state.progress * 100);
-  const ring = 2 * Math.PI * 17;
-  const color = state.status === 'done' ? '#10b981' : state.status === 'active' ? '#f59e0b' : '#94a3b8';
+  const showLabel = selected || hover;
+  const done = state.status === 'done';
+  const locked = state.status === 'locked' && !current;
+  const size = current ? 46 : done ? 34 : 28;
+  const ring = 2 * Math.PI * 20;
+  const bg = current ? PALETTE.falaj : done ? PALETTE.palm : 'rgba(37,44,42,.72)';
   return (
     <group>
       <mesh position={[x, (ground + markerY - 0.25) / 2, z]}>
         <cylinderGeometry args={[0.012, 0.012, markerY - ground - 0.25, 6]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.55} />
-      </mesh>
-      <mesh position={[x, ground + 0.03, z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.14, 0.2, 24]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
+        <meshBasicMaterial color={current ? '#ffe2a0' : '#ffffff'} transparent opacity={locked ? 0.25 : 0.5} />
       </mesh>
       <Html position={[x, markerY, z]} center zIndexRange={[30, 0]}>
         <button
@@ -75,37 +80,50 @@ function Marker({ state, selected, onSelect, isAr }: { state: StationState; sele
           onClick={() => onSelect(state.levelId)}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
-          title={state.title}
-          className="flex items-center gap-1.5 select-none"
-          style={{ transform: selected ? 'scale(1.12)' : undefined, transition: 'transform .2s' }}
+          aria-label={state.title}
+          className="flex items-center gap-2 select-none"
+          style={{ transform: selected ? 'scale(1.1)' : undefined, transition: 'transform .2s' }}
         >
-          <span className="relative grid place-items-center w-10 h-10 rounded-full shadow-lg" style={{ background: 'rgba(255,255,255,.95)' }}>
-            <svg viewBox="0 0 40 40" className="absolute inset-0 w-10 h-10 -rotate-90">
-              <circle cx="20" cy="20" r="17" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-              <circle
-                cx="20"
-                cy="20"
-                r="17"
-                fill="none"
-                stroke={color}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={ring}
-                strokeDashoffset={ring * (1 - (state.status === 'done' ? 1 : state.progress))}
-              />
-            </svg>
-            <Icon className="w-4 h-4" style={{ color: state.status === 'locked' ? '#94a3b8' : '#0f766e' }} />
+          <span className="relative grid place-items-center rounded-full" style={{ width: size, height: size }}>
+            {current && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(201,162,39,.45)' }} />}
             <span
-              className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold grid place-items-center text-white"
-              style={{ background: color }}
+              className="relative grid place-items-center rounded-full"
+              style={{
+                width: size,
+                height: size,
+                background: bg,
+                border: `2px solid ${current ? PALETTE.gold : done ? '#9fe0c9' : 'rgba(244,240,231,.55)'}`,
+                boxShadow: current ? '0 0 0 4px rgba(201,162,39,.25), 0 6px 18px rgba(35,156,145,.55)' : selected ? '0 0 0 3px rgba(244,240,231,.9)' : '0 3px 10px rgba(0,0,0,.35)',
+              }}
             >
-              {state.levelId >= 0 ? state.levelId : '★'}
+              {current && state.progress > 0 && (
+                <svg viewBox="0 0 46 46" className="absolute inset-0 -rotate-90" style={{ width: size, height: size }}>
+                  <circle cx="23" cy="23" r="20" fill="none" stroke="#ffe7a3" strokeWidth="3" strokeLinecap="round" strokeDasharray={ring} strokeDashoffset={ring * (1 - state.progress)} />
+                </svg>
+              )}
+              {done ? (
+                <Check className="w-4 h-4 text-white" strokeWidth={3} />
+              ) : locked ? (
+                <Lock className="w-3.5 h-3.5" style={{ color: PALETTE.limestone }} />
+              ) : state.levelId === -1 ? (
+                <Star className="w-5 h-5 text-white" />
+              ) : (
+                <Icon className="w-5 h-5 text-white" />
+              )}
+              <span
+                className="absolute -top-1.5 -end-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold grid place-items-center"
+                style={{ background: PALETTE.limestone, color: PALETTE.charcoal, border: `1px solid ${PALETTE.sand}` }}
+              >
+                {state.levelId >= 0 ? state.levelId : '★'}
+              </span>
             </span>
           </span>
           {showLabel && (
-            <span className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-md" style={{ background: 'rgba(255,255,255,.95)', color: '#0f172a' }}>
+            <span
+              className="whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold shadow-lg"
+              style={{ background: 'rgba(244,240,231,.96)', color: PALETTE.charcoal, border: `1px solid ${PALETTE.sand}`, fontFamily: isAr ? '"Noto Kufi Arabic", sans-serif' : undefined }}
+            >
               {state.title}
-              {state.status === 'active' && pct > 0 ? ` · ${pct}%` : ''}
             </span>
           )}
         </button>
@@ -122,22 +140,30 @@ function CameraRig({
   resetSignal,
   zoomSignal,
   zoomDir,
+  panelSide,
 }: {
   selected: number | null;
   fresh: number | null;
   resetSignal: number;
   zoomSignal: number;
   zoomDir: 1 | -1;
+  panelSide: 'left' | 'right' | 'none';
 }) {
   const ref = useRef<CameraControls>(null);
   const first = useRef(true);
+  // shift the view away from the mission card so the valley stays visible
+  const shift = panelSide === 'left' ? -1 : panelSide === 'right' ? 1 : 0;
 
   const fly = (levelId: number, smooth = true) => {
     const s = spotOf(levelId);
     const ty = s.ground + 0.6;
-    ref.current?.setLookAt(s.x + 7, ty + 9.5, s.z + 13, s.x, ty, s.z, smooth);
+    ref.current?.setFocalOffset(shift * 3.4, 0, 0, smooth);
+    ref.current?.setLookAt(s.x + 8.5, ty + 12, s.z + 16, s.x, ty, s.z, smooth);
   };
-  const overview = (smooth = true) => ref.current?.setLookAt(...OVERVIEW.pos, ...OVERVIEW.target, smooth);
+  const overview = (smooth = true) => {
+    ref.current?.setFocalOffset(shift * 8.5, 0, 0, smooth);
+    ref.current?.setLookAt(...OVERVIEW.pos, ...OVERVIEW.target, smooth);
+  };
 
   useEffect(() => {
     if (!ref.current) return;
@@ -196,7 +222,7 @@ function SceneEnv({ timeOfDay }: { timeOfDay: TimeOfDay }) {
 
 // ─── Scene ─────────────────────────────────────────────────────────────────────
 
-export default function ValleyScene({ stations, selected, onSelect, fresh, timeOfDay, isAr, businessName, resetSignal, zoomSignal, zoomDir }: ValleySceneProps) {
+export default function ValleyScene({ stations, selected, onSelect, fresh, timeOfDay, isAr, businessName, resetSignal, zoomSignal, zoomDir, current, panelSide }: ValleySceneProps) {
   const [quality, setQuality] = useState<'high' | 'low'>(() =>
     typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 8) <= 4 ? 'low' : 'high'
   );
@@ -208,6 +234,16 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
   const anim = (lv: number) => fresh === lv;
   const L = LIGHT[timeOfDay];
   const traffic = (done[3] ? 1 : 0) + (done[7] ? 3 : 0);
+  const zoneStates = useMemo(
+    // 2 finished, 1 current, 3 open but not current, 0 locked
+    () => Array.from({ length: 8 }, (_, i) => (done[i] ? 2 : current === i ? 1 : stations.find(s => s.levelId === i)?.status === 'active' ? 3 : 0)),
+    [done, stations, current]
+  );
+  const segments: SegmentState[] = useMemo(() => {
+    const stopDone = [...done, final];
+    return Array.from({ length: 8 }, (_, k) => (stopDone[k + 1] ? 'done' : stopDone[k] ? 'current' : 'locked'));
+  }, [done, final, current]);
+  const currentSpot = current !== null ? spotOf(current) : null;
 
   return (
     <Canvas
@@ -237,7 +273,9 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
       />
       <SceneEnv timeOfDay={timeOfDay} />
 
-      <Ground green={green} />
+      <Ground green={green} zoneStates={zoneStates} />
+      <Trail segments={segments} />
+      {currentSpot && <CurrentRing x={currentSpot.x} z={currentSpot.z} />}
       <Scrub />
       <GardenWalls />
       <Palms lush={done[6]} animate={anim(6)} delay={FLY_DELAY} />
@@ -259,10 +297,10 @@ export default function ValleyScene({ stations, selected, onSelect, fresh, timeO
       {final && <Fireworks />}
 
       {stations.map(s => (
-        <Marker key={s.levelId} state={s} selected={selected === s.levelId} onSelect={onSelect} isAr={isAr} />
+        <Marker key={s.levelId} state={s} selected={selected === s.levelId} current={current === s.levelId} onSelect={onSelect} isAr={isAr} />
       ))}
 
-      <CameraRig selected={selected} fresh={fresh} resetSignal={resetSignal} zoomSignal={zoomSignal} zoomDir={zoomDir} />
+      <CameraRig selected={selected} fresh={fresh} resetSignal={resetSignal} zoomSignal={zoomSignal} zoomDir={zoomDir} panelSide={panelSide} />
 
       {quality === 'high' && (
         <EffectComposer multisampling={0}>
