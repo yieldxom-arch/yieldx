@@ -122,15 +122,15 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '3. Create these accounts:';
   RAISE NOTICE '   - Email: demo.teacher@yieldx.com';
-  RAISE NOTICE '   - Password: demo123';
+  RAISE NOTICE '   - Password: <your-password>';
   RAISE NOTICE '   - Auto Confirm User: YES';
   RAISE NOTICE '';
   RAISE NOTICE '   - Email: demo.student@yieldx.com';
-  RAISE NOTICE '   - Password: demo123';
+  RAISE NOTICE '   - Password: <your-password>';
   RAISE NOTICE '   - Auto Confirm User: YES';
   RAISE NOTICE '';
   RAISE NOTICE '   - Email: admin@yieldx.com';
-  RAISE NOTICE '   - Password: admin123';
+  RAISE NOTICE '   - Password: <your-password>';
   RAISE NOTICE '   - Auto Confirm User: YES';
   RAISE NOTICE '';
   RAISE NOTICE '4. After creating auth users, run this query:';

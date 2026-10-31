@@ -56,7 +56,6 @@ import { FullStudyPage } from '@/app/components/journey/FullStudyPage';
 import { FeaturesShowcase } from '@/app/components/demo/FeaturesShowcase';
 import { ColonyPage } from '@/app/components/pages/ColonyPage';
 import { WarpDrivePage } from '@/app/components/pages/WarpDrivePage';
-import { MigrationButton } from '@/app/components/admin/MigrationButton';
 // Live World Events
 import { WorldEventsProvider } from '@/app/contexts/WorldEventsContext';
 import { WorldEventsPage } from '@/app/components/world-events/WorldEventsPage';
@@ -115,13 +114,6 @@ function AppContent() {
   const { currentView, user, language } = useYieldX();
   const currentSubscription = SUBSCRIPTION_PLANS.find(plan => plan.id === user?.subscriptionTier);
 
-  // Show migration helper in console
-  React.useEffect(() => {
-    console.log('%c🔧 YieldX Migration Helper', 'font-size: 16px; font-weight: bold; color: #f59e0b;');
-    console.log('%cIf you see "profiles_role_check" errors, run:', 'color: #92400e;');
-    console.log('%crunOrganizationRoleMigration()', 'font-size: 14px; font-weight: bold; color: #059669; background: #f0fdf4; padding: 4px 8px;');
-    console.log('%cOr click the yellow button in the bottom-right corner!', 'color: #92400e;');
-  }, []);
 
   const renderView = () => {
     // If no user is logged in and view is not auth-related or dashboard (demo mode), show home page
@@ -294,8 +286,6 @@ export default function App() {
           <ConnectivityBanner />
           <AppContent />
           <Toaster />
-          {/* Temporary migration button - remove after migration is complete */}
-          <MigrationButton />
         </div>
       </WorldEventsProvider>
     </YieldXProvider>

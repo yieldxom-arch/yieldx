@@ -73,22 +73,22 @@ You need to create the demo accounts manually in Supabase Auth:
 
 #### **Demo Student Account:**
 - **Email:** `demo.student@yieldx.com`
-- **Password:** `demo123`
-- **Confirm Password:** `demo123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **Auto Confirm User:** ✅ YES
 - Click "Create user"
 
 #### **Demo Teacher Account:**
 - **Email:** `demo.teacher@yieldx.com`
-- **Password:** `demo123`
-- **Confirm Password:** `demo123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **Auto Confirm User:** ✅ YES
 - Click "Create user"
 
 #### **Admin Account:**
 - **Email:** `admin@yieldx.com`
-- **Password:** `admin123`
-- **Confirm Password:** `admin123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **Auto Confirm User:** ✅ YES
 - Click "Create user"
 
@@ -152,7 +152,7 @@ The schema should have already created the `attachments` bucket, but verify:
 ### **4.1 Test Authentication**
 
 1. Open your YieldX platform
-2. Try logging in with: `demo.student@yieldx.com` / `demo123`
+2. Try logging in with: `demo.student@yieldx.com` / `<your-password>`
 3. Check browser console for Supabase connection logs
 4. You should see: ✅ "Supabase client initialized"
 

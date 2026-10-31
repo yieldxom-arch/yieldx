@@ -50,9 +50,9 @@ User Login → Supabase Auth → Password Check (bcrypt) → JWT Token → Sessi
 - ✅ Role-based access (student/teacher/admin)
 
 **Demo Accounts:**
-- Student: `demo.student@yieldx.com` / `demo123`
-- Teacher: `demo.teacher@yieldx.com` / `demo123`
-- Admin: `admin@yieldx.com` / `admin123`
+- Student: `demo.student@yieldx.com` / `<your-password>`
+- Teacher: `demo.teacher@yieldx.com` / `<your-password>`
+- Admin: `admin@yieldx.com` / `<your-password>`
 
 ---
 

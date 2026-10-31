@@ -24,13 +24,13 @@ Blank/white screen after login with error: `relation "profiles" does not exist`
 
 **Teacher Account:**
 - Email: `demo.teacher@yieldx.com`
-- Password: `demo123`
+- Password: `<your-password>`
 - **✅ CHECK "Auto Confirm User"**
 - Click "Create user"
 
 **Student Account:**
 - Email: `demo.student@yieldx.com`
-- Password: `demo123`
+- Password: `<your-password>`
 - **✅ CHECK "Auto Confirm User"**
 - Click "Create user"
 
@@ -52,7 +52,7 @@ Blank/white screen after login with error: `relation "profiles" does not exist`
 2. **Refresh page (Ctrl/Cmd + R)**
 3. Login with:
    - Email: `demo.teacher@yieldx.com`
-   - Password: `demo123`
+   - Password: `<your-password>`
 4. ✅ **Should work now!**
 
 ---
@@ -98,15 +98,15 @@ Both files are in your project root folder.
 
 **Teacher:**
 - Email: `demo.teacher@yieldx.com`
-- Password: `demo123`
+- Password: `<your-password>`
 
 **Student:**
 - Email: `demo.student@yieldx.com`
-- Password: `demo123`
+- Password: `<your-password>`
 
 **Admin:**
 - Email: `admin@yieldx.com`
-- Password: `admin123`
+- Password: `<your-password>`
 
 ---
 

@@ -303,7 +303,7 @@ if (isDemoStudent(email)) {
 1. **Login as Demo Student:**
    ```
    Email: demo.student@yieldx.com
-   Password: demo123
+   Password: <your-password>
    Role: Student
    ```
 
@@ -330,8 +330,8 @@ if (isDemoStudent(email)) {
 
 5. **Login as Regular Student:**
    ```
-   Email: alhashmisaid23@gmail.com
-   Password: password123
+   Email: student1@example.com
+   Password: <your-password>
    Role: Student
    ```
    - ✅ Projects section is EMPTY

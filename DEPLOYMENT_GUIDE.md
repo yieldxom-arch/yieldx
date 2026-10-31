@@ -54,22 +54,22 @@
 
 **Create Account #1 - Teacher:**
 - **Email:** `demo.teacher@yieldx.com`
-- **Password:** `demo123`
-- **Confirm Password:** `demo123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **✅ IMPORTANT: Check "Auto Confirm User"**
 - Click **"Create user"**
 
 **Create Account #2 - Student:**
 - **Email:** `demo.student@yieldx.com`
-- **Password:** `demo123`
-- **Confirm Password:** `demo123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **✅ IMPORTANT: Check "Auto Confirm User"**
 - Click **"Create user"**
 
 **Create Account #3 - Admin:**
 - **Email:** `admin@yieldx.com`
-- **Password:** `admin123`
-- **Confirm Password:** `admin123`
+- **Password:** `<your-password>`
+- **Confirm Password:** `<your-password>`
 - **✅ IMPORTANT: Check "Auto Confirm User"**
 - Click **"Create user"**
 
@@ -96,17 +96,17 @@ You should now see 3 users in the list.
 
    Teacher Account:
    - Email: demo.teacher@yieldx.com
-   - Password: demo123
+   - Password: <your-password>
    - Role: lecturer
 
    Student Account:
    - Email: demo.student@yieldx.com
-   - Password: demo123
+   - Password: <your-password>
    - Role: student
 
    Admin Account:
    - Email: admin@yieldx.com
-   - Password: admin123
+   - Password: <your-password>
    - Role: admin
 
 🎉 You are ready to use YieldX!
@@ -181,7 +181,7 @@ FROM storage.buckets;
 1. Click **"Lecturer Login"**
 2. Enter:
    - Email: `demo.teacher@yieldx.com`
-   - Password: `demo123`
+   - Password: `<your-password>`
 3. Click **"Login"**
 4. ✅ You should see the **Teacher Dashboard**
 
@@ -190,7 +190,7 @@ FROM storage.buckets;
 2. Click **"Student Login"**
 3. Enter:
    - Email: `demo.student@yieldx.com`
-   - Password: `demo123`
+   - Password: `<your-password>`
 4. Click **"Login"**
 5. ✅ You should see the **Student Dashboard** with space map
 
@@ -225,7 +225,7 @@ If returns 0 rows, run the CREATE_DEMO_ACCOUNTS.sql script.
 **Solution:** Create auth user in Authentication > Users (Step 2A)
 
 **Cause 2:** Password is wrong  
-**Solution:** Use `demo123` for teacher/student, `admin123` for admin
+**Solution:** Use `<your-password>` for teacher/student, `<your-password>` for admin
 
 **Cause 3:** Email not confirmed  
 **Solution:** When creating auth user, make sure "Auto Confirm User" is checked

@@ -7,7 +7,7 @@
 #### **1. Demo Student Account**
 ```
 Email:    demo.student@yieldx.com
-Password: demo123
+Password: <your-password>
 Role:     Student
 Name:     Demo Student
 ```
@@ -25,8 +25,8 @@ Name:     Demo Student
 
 #### **2. Said Al Hashmi (Account 1)**
 ```
-Email:    alhashmisaid23@gmail.com
-Password: password123
+Email:    student1@example.com
+Password: <your-password>
 Role:     Student
 Name:     Said Al Hashmi
 ```
@@ -36,8 +36,8 @@ Name:     Said Al Hashmi
 
 #### **3. Said Al Hashmi (Account 2)**
 ```
-Email:    alhashmisaid21@gmail.com
-Password: password123
+Email:    student2@example.com
+Password: <your-password>
 Role:     Student
 Name:     Said Al Hashmi 21
 ```
@@ -50,7 +50,7 @@ Name:     Said Al Hashmi 21
 #### **4. Demo Teacher Account**
 ```
 Email:    demo.teacher@yieldx.com
-Password: demo123
+Password: <your-password>
 Role:     Lecturer (Teacher)
 Name:     Demo Teacher
 ```
@@ -71,7 +71,7 @@ Name:     Demo Teacher
 #### **5. System Administrator**
 ```
 Email:    admin@yieldx.com
-Password: admin123
+Password: <your-password>
 Role:     Admin
 Name:     System Admin
 ```
@@ -88,11 +88,11 @@ Name:     System Admin
 
 | User Type | Email | Password | Role |
 |-----------|-------|----------|------|
-| 👨‍🎓 Student (Demo) | demo.student@yieldx.com | demo123 | Student |
-| 👨‍🎓 Student (Custom) | alhashmisaid23@gmail.com | password123 | Student |
-| 👨‍🎓 Student (Custom) | alhashmisaid21@gmail.com | password123 | Student |
-| 👨‍🏫 Teacher | demo.teacher@yieldx.com | demo123 | Lecturer |
-| 🔧 Admin | admin@yieldx.com | admin123 | Admin |
+| 👨‍🎓 Student (Demo) | demo.student@yieldx.com | <your-password> | Student |
+| 👨‍🎓 Student (Custom) | student1@example.com | <your-password> | Student |
+| 👨‍🎓 Student (Custom) | student2@example.com | <your-password> | Student |
+| 👨‍🏫 Teacher | demo.teacher@yieldx.com | <your-password> | Lecturer |
+| 🔧 Admin | admin@yieldx.com | <your-password> | Admin |
 
 ---
 
@@ -353,9 +353,9 @@ After successful login, you should see:
 
 ### **Issue 3: "Wrong password"**
 **Solution:** Passwords are case-sensitive:
-- demo123 (lowercase)
-- admin123 (lowercase)
-- password123 (lowercase)
+- <your-password> (lowercase)
+- <your-password> (lowercase)
+- <your-password> (lowercase)
 
 ### **Issue 4: Data not saving**
 **Solution:** Check browser allows localStorage

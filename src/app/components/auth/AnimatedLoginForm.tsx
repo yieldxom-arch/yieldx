@@ -7,9 +7,9 @@ import { SpaceCharacter } from './SpaceCharacter';
 import { ForgotPassword } from './ForgotPassword';
 // OFFLINE MODE: auth is handled entirely by YieldXContext via localStorage
 
-export function AnimatedLoginForm() {
+export function AnimatedLoginForm({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' } = {}) {
   const { language, setLanguage, translations, setCurrentView, login, register } = useYieldX();
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

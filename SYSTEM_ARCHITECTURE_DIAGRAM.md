@@ -379,7 +379,7 @@
 │  ┌────────────────────────────────┐                            │
 │  │  User Selects: "Login"         │                            │
 │  │  • Enter: demo.student@...     │                            │
-│  │  • Password: demo123           │                            │
+│  │  • Password: <your-password>           │                            │
 │  │  • Role: Student               │                            │
 │  └──────────┬─────────────────────┘                            │
 │             ↓                                                   │
@@ -613,12 +613,12 @@
 │  LAYER 2: AUTHENTICATION SECURITY                               │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                        │
 │  ┌────────────────────────────────────────────┐                │
-│  │  User Password: "demo123"                  │                │
+│  │  User Password: "<your-password>"                  │                │
 │  │       ↓                                    │                │
 │  │  bcrypt Hash (10 rounds)                   │                │
 │  │  $2b$10$xyz...abc (stored in DB)           │                │
 │  │       ↓                                    │                │
-│  │  Login Attempt: "demo123"                  │                │
+│  │  Login Attempt: "<your-password>"                  │                │
 │  │       ↓                                    │                │
 │  │  bcrypt.compare(input, stored_hash)        │                │
 │  │       ↓                                    │                │
