@@ -44,7 +44,9 @@ export function useGrowth(run: boolean, delay = 0, dur = 1.2) {
   const value = useRef(run ? 1 : 0);
   useFrame(({ clock }) => {
     if (!run) {
+      // reset, so it grows again if it comes back (e.g. in the journey replay)
       start.current = null;
+      value.current = 0;
       return;
     }
     if (value.current >= 1) return;
@@ -73,7 +75,11 @@ export function Reveal({
   const ref = useRef<THREE.Group>(null);
   const start = useRef<number | null>(null);
   useFrame(({ clock }) => {
-    if (!ref.current || !show) return;
+    if (!show) {
+      start.current = null;
+      return;
+    }
+    if (!ref.current) return;
     if (!animate) {
       ref.current.scale.setScalar(1);
       return;
@@ -92,7 +98,13 @@ export function Reveal({
 
 // ─── Ground ────────────────────────────────────────────────────────────────────
 
-export function Ground({ green }: { green: number }) {
+/**
+ * The ground. Each level owns an area of the valley: locked areas look faded,
+ * like unexplored land; borders glow (gold for the current level, teal when
+ * finished).
+ * zoneStates: 0 locked, 1 current/open, 2 finished — one per level 0..7.
+ */
+export function Ground({ green, zoneStates }: { green: number; zoneStates: number[] }) {
   const { geo, dry, lush } = useMemo(() => {
     const g = buildTerrain(0);
     const d = (g.attributes.color.array as Float32Array).slice();
@@ -108,8 +120,75 @@ export function Ground({ green }: { green: number }) {
     t.needsUpdate = true;
     return t;
   }, []);
+  const uniforms = useMemo(
+    () => ({
+      uLock: { value: zoneStates.map(s => (s === 0 ? 1 : 0)) },
+      uState: { value: zoneStates.slice() },
+    }),
+    []
+  );
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true, map: tex, roughness: 0.96, metalness: 0 });
+    m.onBeforeCompile = shader => {
+      shader.uniforms.uLock = uniforms.uLock;
+      shader.uniforms.uState = uniforms.uState;
+      shader.uniforms.uTime = timeUniform;
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          attribute float aZone;
+          attribute float aEdge;
+          uniform float uLock[8];
+          uniform float uState[8];
+          uniform float uTime;
+          varying float vLock;
+          varying vec3 vEdgeCol;`
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          vLock = 0.0;
+          vEdgeCol = vec3(0.0);
+          if (aZone > -0.5) {
+            int zi = int(aZone + 0.5);
+            vLock = uLock[zi];
+            float st = uState[zi];
+            vec3 c = st > 2.5 ? vec3(0.0) : st > 1.5 ? vec3(0.02, 0.16, 0.13) : (st > 0.5 ? vec3(0.95, 0.62, 0.12) * (0.6 + 0.4 * sin(uTime * 3.0)) : vec3(0.0));
+            vEdgeCol = c * aEdge;
+          }`
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          varying float vLock;
+          varying vec3 vEdgeCol;`
+        )
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          float lum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(lum) * vec3(0.97, 0.95, 0.92), vLock * 0.62);`
+        )
+        .replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+          totalEmissiveRadiance += vEdgeCol;`
+        );
+    };
+    return m;
+  }, [tex, uniforms]);
 
   useFrame((_, dt) => {
+    // fade areas in and out smoothly
+    const lock = uniforms.uLock.value as number[];
+    zoneStates.forEach((s, i) => {
+      const target = s === 0 ? 1 : 0;
+      lock[i] += (target - lock[i]) * Math.min(1, dt * 1.5);
+      (uniforms.uState.value as number[])[i] = s;
+    });
+
     const apply = () => {
       const arr = geo.attributes.color.array as Float32Array;
       const k = current.current;
@@ -129,9 +208,7 @@ export function Ground({ green }: { green: number }) {
 
   return (
     <group>
-      <mesh geometry={geo} receiveShadow castShadow>
-        <meshStandardMaterial vertexColors map={tex} roughness={0.96} metalness={0} />
-      </mesh>
+      <mesh geometry={geo} material={material} receiveShadow castShadow />
       <mesh geometry={skirt} receiveShadow>
         <meshStandardMaterial vertexColors roughness={1} side={THREE.DoubleSide} />
       </mesh>

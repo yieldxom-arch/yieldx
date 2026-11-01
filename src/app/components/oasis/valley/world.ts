@@ -71,6 +71,38 @@ export const SPOTS = {
   tower: new THREE.Vector2(5.2, -8.2),
 };
 
+/** Spot of each level 0..7, in order: each level owns the area nearest to it. */
+export const ZONE_SPOTS: THREE.Vector2[] = [
+  SPOTS.spring,
+  SPOTS.shop,
+  SPOTS.fort,
+  SPOTS.road,
+  SPOTS.workshop,
+  SPOTS.village,
+  SPOTS.gardens,
+  SPOTS.souq,
+];
+
+/** Which level's area a point belongs to (-1 = mountains, no area). */
+export function zoneOf(x: number, z: number, h: number) {
+  if (z < -7.4 || h > 3.4) return -1;
+  let best = -1;
+  let bd = Infinity;
+  ZONE_SPOTS.forEach((p, i) => {
+    const d = Math.hypot(x - p.x, (z - p.y) * 1.15);
+    if (d < bd) {
+      bd = d;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** The user's own plot, in front of the old quarter where the road ends. */
+export const PLOT = { x: 1.6, z: 7.0, w: 4.0, d: 2.2, ground: 0.09 };
+/** Where the drive from the road reaches the plot gate. */
+export const PLOT_GATE = new THREE.Vector2(PLOT.x - 0.6, PLOT.z - PLOT.d / 2);
+
 export const FALAJ_POINTS: [number, number][] = [
   [-14, -5.4],
   [-11.8, -3.9],
@@ -173,6 +205,12 @@ export function heightAt(x: number, z: number): number {
   const target = 0.35 + (fbm(x * 0.05, z * 0.05) - 0.5) * 0.3;
   h = h * (1 - Math.max(flatF, flatR) * 0.65) + target * Math.max(flatF, flatR) * 0.65;
 
+  // a level pad for the user's plot
+  const px = Math.max(0, Math.abs(x - PLOT.x) - PLOT.w / 2);
+  const pz = Math.max(0, Math.abs(z - PLOT.z) - PLOT.d / 2);
+  const flatP = Math.exp(-(px * px + pz * pz) / 0.5);
+  h = h * (1 - flatP) + PLOT.ground * flatP;
+
   return h;
 }
 
@@ -235,6 +273,41 @@ export function buildTerrain(green: number) {
   }
   geo.computeVertexNormals();
   paintTerrain(geo, green);
+
+  // level areas and their borders
+  const zones = new Float32Array(pos.count);
+  const edges = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) zones[i] = zoneOf(pos.getX(i), pos.getZ(i), pos.getY(i));
+  const row = SEG_X + 1;
+  for (let iz = 0; iz <= SEG_Z; iz++) {
+    for (let ix = 0; ix <= SEG_X; ix++) {
+      const i = iz * row + ix;
+      const a = zones[i];
+      if (a < 0) continue;
+      const right = ix < SEG_X ? zones[i + 1] : a;
+      const down = iz < SEG_Z ? zones[i + row] : a;
+      if (right >= 0 && right !== a) {
+        edges[i] = 1;
+        edges[i + 1] = 1;
+      }
+      if (down >= 0 && down !== a) {
+        edges[i] = 1;
+        edges[i + row] = 1;
+      }
+    }
+  }
+  // widen the border band a little so it reads from far away
+  const wide = edges.slice();
+  for (let iz = 1; iz < SEG_Z; iz++) {
+    for (let ix = 1; ix < SEG_X; ix++) {
+      const i = iz * row + ix;
+      if (edges[i] === 1 || zones[i] < 0) continue;
+      if (edges[i - 1] === 1 || edges[i + 1] === 1 || edges[i - row] === 1 || edges[i + row] === 1) wide[i] = 0.55;
+    }
+  }
+  edges.set(wide);
+  geo.setAttribute('aZone', new THREE.BufferAttribute(zones, 1));
+  geo.setAttribute('aEdge', new THREE.BufferAttribute(edges, 1));
   return geo;
 }
 
@@ -334,13 +407,17 @@ export interface Spot {
 }
 
 /** Places that buildings use, so trees and rocks keep away from them. */
-export const BLOCKERS: { x: number; z: number; r: number }[] = [
+/** Areas kept free of trees and houses. `open` ones can still be walked on. */
+export const BLOCKERS: { x: number; z: number; r: number; open?: boolean }[] = [
   { x: SPOTS.fort.x, z: SPOTS.fort.y, r: 2.6 },
   { x: SPOTS.shop.x, z: SPOTS.shop.y, r: 1.2 },
   { x: SPOTS.souq.x, z: SPOTS.souq.y, r: 1.9 },
   { x: SPOTS.workshop.x, z: SPOTS.workshop.y, r: 2.0 },
   { x: SPOTS.spring.x, z: SPOTS.spring.y, r: 1.0 },
   { x: SPOTS.tower.x, z: SPOTS.tower.y, r: 0.9 },
+  { x: PLOT.x, z: PLOT.z, r: 2.4 },
+  // a clear front yard so the plot can be seen from the usual camera angle
+  { x: PLOT.x + 0.3, z: PLOT.z + 2.7, r: 2.2, open: true },
 ];
 
 export function blocked(x: number, z: number, pad = 0) {

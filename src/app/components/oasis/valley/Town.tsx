@@ -12,7 +12,7 @@ const MUD = '#cfa97a';
 const MUD_DARK = '#b88f5e';
 const WOOD = '#5b3a22';
 
-function Plaster({ color = MUD, rough = 0.95 }: { color?: string; rough?: number }) {
+export function Plaster({ color = MUD, rough = 0.95 }: { color?: string; rough?: number }) {
   return <meshStandardMaterial color={color} map={plasterTexture()} roughness={rough} />;
 }
 
@@ -109,7 +109,7 @@ export function Houses({ night }: { night: boolean }) {
 
 // ─── Building parts ────────────────────────────────────────────────────────────
 
-function Teeth({ w, d, y, size = 0.12, color = MUD }: { w: number; d: number; y: number; size?: number; color?: string }) {
+export function Teeth({ w, d, y, size = 0.12, color = MUD }: { w: number; d: number; y: number; size?: number; color?: string }) {
   const items: [number, number][] = [];
   const step = size * 2;
   for (let x = -w / 2 + size / 2; x <= w / 2 - size / 2 + 1e-6; x += step) items.push([x, -d / 2 + size / 2], [x, d / 2 - size / 2]);
@@ -142,7 +142,7 @@ function RoundTeeth({ r, y, n, size = 0.14, color = MUD }: { r: number; y: numbe
   );
 }
 
-function Lantern({ position, on }: { position: [number, number, number]; on: boolean }) {
+export function Lantern({ position, on }: { position: [number, number, number]; on: boolean }) {
   return (
     <mesh position={position}>
       <sphereGeometry args={[0.06, 10, 8]} />
@@ -152,7 +152,7 @@ function Lantern({ position, on }: { position: [number, number, number]; on: boo
 }
 
 /** Flag of Oman (simplified), waving. */
-function Flag({ height }: { height: number }) {
+export function Flag({ height }: { height: number }) {
   const mat = useMemo(() => swayMaterial({ vertexColors: true, roughness: 0.7, side: THREE.DoubleSide }, 0.25), []);
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(0.66, 0.4, 10, 3);
@@ -452,7 +452,7 @@ export function Souq({ busy, animate, delay, night }: { busy: boolean; animate: 
 
 // ─── Your shop, with your business name ────────────────────────────────────────
 
-function nameTexture(name: string) {
+export function nameTexture(name: string) {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 128;
