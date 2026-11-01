@@ -712,6 +712,8 @@ export function YourPlot({
   // items added since the scene mounted pop in; the rest are just there
   const seen = useRef<Set<PlotItemId> | null>(null);
   if (seen.current === null) seen.current = new Set(items);
+  // an item that is removed and added again pops in again
+  for (const id of Array.from(seen.current)) if (!items.includes(id)) seen.current.delete(id);
   const anim = (lv: number) => fresh === lv;
   return (
     <group>

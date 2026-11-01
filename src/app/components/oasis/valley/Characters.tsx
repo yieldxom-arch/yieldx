@@ -288,12 +288,12 @@ export function Player({ look, target, cheer }: { look: 'man' | 'woman'; target:
     else pts = findPath(from, goal);
     let len = 0;
     for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
-    // short hops are walked; longer trips are run, arriving within ~6 seconds
+    // short hops are walked; longer trips are run, arriving within ~5 seconds
     if (len < 2.5) {
       walk.current = { pts, seg: 0, t: 0, speed: 0.75 };
       play('Walking_A', 1.5);
     } else {
-      const speed = Math.min(4, Math.max(1.2, len / 6));
+      const speed = Math.min(4.5, Math.max(1.2, len / 5));
       walk.current = { pts, seg: 0, t: 0, speed };
       play('Running_A', Math.min(1.9, Math.max(0.9, speed / 1.4)));
     }

@@ -44,7 +44,9 @@ export function useGrowth(run: boolean, delay = 0, dur = 1.2) {
   const value = useRef(run ? 1 : 0);
   useFrame(({ clock }) => {
     if (!run) {
+      // reset, so it grows again if it comes back (e.g. in the journey replay)
       start.current = null;
+      value.current = 0;
       return;
     }
     if (value.current >= 1) return;
@@ -73,7 +75,11 @@ export function Reveal({
   const ref = useRef<THREE.Group>(null);
   const start = useRef<number | null>(null);
   useFrame(({ clock }) => {
-    if (!ref.current || !show) return;
+    if (!show) {
+      start.current = null;
+      return;
+    }
+    if (!ref.current) return;
     if (!animate) {
       ref.current.scale.setScalar(1);
       return;

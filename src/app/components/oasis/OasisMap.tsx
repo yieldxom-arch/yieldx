@@ -1,6 +1,6 @@
 import React, { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Award, Box, Check, CheckCircle2, Circle, Clock, Droplets, Flag, Hammer, List, Lock, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, Star, Sun, Tent, Trees, Truck, X } from 'lucide-react';
+import { Award, Box, Check, CheckCircle2, Circle, Clock, Droplets, Flag, Hammer, List, Lock, Minus, Play, Plus, RotateCcw, Sparkles as SparklesIcon, Star, Sun, Tent, Trees, Truck, X } from 'lucide-react';
 import '@fontsource/noto-kufi-arabic/700.css';
 import { useYieldX } from '@/app/contexts/YieldXContext';
 import { translations } from '@/app/contexts/translations';
@@ -150,7 +150,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
     if (!buildOpen) setPlotFocus(n => n + 1);
   };
 
-  const stations: StationState[] = useMemo(() => {
+  const realStations: StationState[] = useMemo(() => {
     const done = levels.filter(l => l.completed).length;
     return VALLEY_LEVELS.map(v => {
       if (v.levelId === -1) {
@@ -167,6 +167,28 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
     });
   }, [levels, t]);
 
+  // ─── Journey replay: the valley coming alive level by level, for presenting.
+  // Step 0 = untouched valley, 1..8 = that many levels finished, 9 = the final night.
+  // Only the picture changes; the user's real progress is not touched.
+  const [replay, setReplay] = useState<number | null>(null);
+  const [replayItems, setReplayItems] = useState<ItemId[]>([]);
+  const replayTimers = useRef<number[]>([]);
+  const clearReplayTimers = () => {
+    replayTimers.current.forEach(id => clearTimeout(id));
+    replayTimers.current = [];
+  };
+  const later = (ms: number, fn: () => void) => {
+    replayTimers.current.push(window.setTimeout(fn, ms));
+  };
+  const stations: StationState[] = useMemo(() => {
+    if (replay === null) return realStations;
+    return realStations.map(s =>
+      s.levelId === -1
+        ? { ...s, status: replay >= 9 ? 'done' : replay >= 8 ? 'active' : 'locked', progress: Math.min(1, replay / 8) }
+        : { ...s, status: s.levelId < replay ? 'done' : s.levelId === replay ? 'active' : 'locked', progress: 0 }
+    );
+  }, [replay, realStations]);
+
   const finished = stations.filter(s => s.levelId >= 0 && s.status === 'done').length;
   const current = stations.find(s => s.levelId >= 0 && s.status === 'active')?.levelId ?? null;
   const [selected, setSelectedRaw] = useState<number | null>(current ?? -1);
@@ -175,7 +197,31 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
     picked.current = true;
     setSelectedRaw(id);
   };
-  const timeOfDay: TimeOfDay = finished >= 8 ? 'night' : isDark ? 'dusk' : 'day';
+  const timeOfDay: TimeOfDay = (replay !== null ? replay >= 9 : finished >= 8) ? 'night' : isDark ? 'dusk' : 'day';
+  const shownXP = replay === null ? totalXP : levels.filter(l => l.levelId < Math.min(replay, 8)).reduce((sum, l) => sum + (l.maxXp || 0), 0);
+  const realCurrent = realStations.find(s => s.levelId >= 0 && s.status === 'active')?.levelId ?? null;
+  const startReplay = () => {
+    setBuildOpen(false);
+    setBanner(null);
+    setReplayItems([]);
+    setReplay(0);
+  };
+  const stopReplay = () => {
+    clearReplayTimers();
+    setReplay(null);
+    setFresh(null);
+    setReplayItems([]);
+    setSelectedRaw(realCurrent ?? -1);
+    setResetSignal(n => n + 1);
+  };
+  useEffect(() => {
+    if (replay === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') stopReplay();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [replay === null]);
   const businessName = String(moduleData?.level1?.businessName || '').trim() || tx('Your business', 'مشروعك');
   const earnedBadges = (badges || []).filter(b => b.earnedAt).length;
   const xpOf = (id: number) => (id >= 0 ? levels.find(l => l.levelId === id)?.maxXp || 100 : levels.reduce((s, l) => s + (l.maxXp || 0), 0));
@@ -183,7 +229,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
   // Find levels finished since the last visit (per study). Levels load a moment
   // after the map mounts, so wait until they settle before comparing.
   useEffect(() => {
-    const doneIds = stations.filter(s => s.levelId >= 0 && s.status === 'done').map(s => s.levelId);
+    const doneIds = realStations.filter(s => s.levelId >= 0 && s.status === 'done').map(s => s.levelId);
     const key = `${SEEN_KEY}:${activeSavedProjectId || 'default'}`;
     const timer = setTimeout(() => {
       let seen: number[] | null = null;
@@ -197,7 +243,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
       const freshIds = seen ? doneIds.filter(id => !seen!.includes(id)) : [];
       if (!freshIds.length && !picked.current) {
         // open on the level to do next
-        setSelectedRaw(stations.find(s => s.levelId >= 0 && s.status === 'active')?.levelId ?? -1);
+        setSelectedRaw(realStations.find(s => s.levelId >= 0 && s.status === 'active')?.levelId ?? -1);
       }
       if (freshIds.length) {
         const id = freshIds[freshIds.length - 1];
@@ -210,7 +256,33 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
       setSettled(true);
     }, 900);
     return () => clearTimeout(timer);
-  }, [stations, activeSavedProjectId]);
+  }, [realStations, activeSavedProjectId]);
+
+  // Run the replay one step at a time.
+  useEffect(() => {
+    if (replay === null) return;
+    clearReplayTimers();
+    if (replay === 0) {
+      setFresh(null);
+      setSelectedRaw(0);
+      setResetSignal(n => n + 1);
+      later(2200, () => setReplay(1));
+    } else if (replay <= 8) {
+      setFresh(replay - 1);
+      setSelectedRaw(replay - 1);
+      later(7000, () => setReplay(replay + 1));
+    } else {
+      // the final night, then a look at the plot filling up, then the whole valley
+      setFresh(-1);
+      setSelectedRaw(-1);
+      later(4500, () => {
+        setPlotFocus(n => n + 1);
+        PLOT_ITEMS.forEach((item, i) => later(1200 + i * 700, () => setReplayItems(prev => (prev.includes(item.id) ? prev : [...prev, item.id]))));
+      });
+      later(14000, () => setResetSignal(n => n + 1));
+    }
+  }, [replay]);
+  useEffect(() => () => clearReplayTimers(), []);
 
   const changeView = (v: '3d' | 'list') => {
     setView(v);
@@ -228,7 +300,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
   const bannerState = stations.find(s => s.levelId === banner);
 
   const openSelected = () => {
-    if (!selState || selState.status === 'locked') return;
+    if (replay !== null || !selState || selState.status === 'locked') return;
     setCurrentView(selState.levelId === -1 ? 'full-study' : `module-${selState.levelId}`);
   };
 
@@ -334,7 +406,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
         <div className="mt-auto pt-5">
           <button
             onClick={openSelected}
-            disabled={selState.status === 'locked'}
+            disabled={selState.status === 'locked' || replay !== null}
             className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition-transform active:translate-y-0.5 disabled:cursor-not-allowed"
             style={{
               background: selState.status === 'locked' ? '#8b8f8d' : `linear-gradient(180deg, ${C.falaj}, ${C.falajDark})`,
@@ -343,7 +415,9 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
               ...heading,
             }}
           >
-            {selState.status === 'locked'
+            {replay !== null
+              ? tx('Replaying the journey…', 'جارٍ عرض الرحلة…')
+              : selState.status === 'locked'
               ? t.levels.requiresPreviousLevel
               : selState.levelId === -1
                 ? tx('Open the full study', 'افتح الدراسة الكاملة')
@@ -475,7 +549,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                     current={current}
                     panelSide={wide ? (isAr ? 'right' : 'left') : 'none'}
                     projectKind={projectTypeData?.type ?? 'commercial'}
-                    plotItems={plotItems.filter(id => totalXP >= (PLOT_ITEMS.find(p => p.id === id)?.xp ?? Infinity))}
+                    plotItems={replay !== null ? replayItems : plotItems.filter(id => totalXP >= (PLOT_ITEMS.find(p => p.id === id)?.xp ?? Infinity))}
                     avatar={avatar}
                     plotFocus={plotFocus}
                   />
@@ -502,7 +576,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
               <div className="h-7 w-px" style={{ background: 'rgba(244,240,231,.2)' }} />
               <div className="inline-flex items-center gap-1 font-bold" style={{ color: '#f1d27a' }}>
                 <Star className="w-4 h-4" />
-                {totalXP} {tx('XP', 'نقطة')}
+                {shownXP} {tx('XP', 'نقطة')}
               </div>
               {earnedBadges > 0 && (
                 <div className="inline-flex items-center gap-1 font-bold">
@@ -511,16 +585,66 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                 </div>
               )}
               <div className="h-7 w-px" style={{ background: 'rgba(244,240,231,.2)' }} />
-              <button
-                onClick={openBuild}
-                aria-expanded={buildOpen}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-bold hover:brightness-110"
-                style={{ background: buildOpen ? C.gold : C.falaj, color: buildOpen ? C.charcoal : '#fff' }}
-              >
-                <Hammer className="w-3.5 h-3.5" />
-                {tx('Your plot', 'أرضك')}
-              </button>
+              {replay === null && (
+                <>
+                  <button
+                    onClick={openBuild}
+                    aria-expanded={buildOpen}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-bold hover:brightness-110"
+                    style={{ background: buildOpen ? C.gold : C.falaj, color: buildOpen ? C.charcoal : '#fff' }}
+                  >
+                    <Hammer className="w-3.5 h-3.5" />
+                    {tx('Your plot', 'أرضك')}
+                  </button>
+                  <button
+                    onClick={startReplay}
+                    title={tx('Replay the whole journey', 'شاهد الرحلة كاملة')}
+                    aria-label={tx('Replay the whole journey', 'شاهد الرحلة كاملة')}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-bold hover:brightness-110"
+                    style={{ background: 'rgba(244,240,231,.12)', color: C.limestone, border: '1px solid rgba(244,240,231,.25)' }}
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{tx('Replay', 'إعادة الرحلة')}</span>
+                  </button>
+                </>
+              )}
             </div>
+
+            {/* Journey replay controls */}
+            {replay !== null && (
+              <div
+                className="absolute z-50 top-16 end-3 w-[280px] max-w-[calc(100%-1.5rem)] rounded-2xl px-3.5 py-3 shadow-2xl backdrop-blur-md text-sm"
+                style={{ background: 'rgba(37,44,42,.9)', border: `1px solid ${C.gold}`, color: C.limestone }}
+                dir={isAr ? 'rtl' : 'ltr'}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="relative grid place-items-center w-7 h-7 rounded-full shrink-0" style={{ background: C.gold }}>
+                    <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(201,162,39,.45)' }} />
+                    <Play className="relative w-3.5 h-3.5" style={{ color: C.charcoal }} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold" style={heading}>
+                      {tx('Journey replay', 'عرض الرحلة')}
+                    </div>
+                    <div className="text-xs opacity-80 truncate">
+                      {replay === 0
+                        ? tx('Starting with an empty valley', 'نبدأ بوادٍ لم يتغير بعد')
+                        : replay <= 8
+                          ? tx(`Level ${replay - 1} finished`, `اكتمل المستوى ${replay - 1}`)
+                          : tx('Your full study is ready', 'دراستك الكاملة جاهزة')}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(244,240,231,.15)' }}>
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.round((Math.min(replay, 9) / 9) * 100)}%`, background: `linear-gradient(90deg, ${C.falaj}, ${C.gold})` }} />
+                </div>
+                <button onClick={stopReplay} className="mt-2.5 w-full rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: 'rgba(244,240,231,.1)', border: '1px solid rgba(244,240,231,.25)' }}>
+                  {tx('End replay (Esc)', 'إنهاء العرض (Esc)')}
+                </button>
+              </div>
+            )}
 
             {/* Your plot: add pieces with XP, choose your character */}
             <AnimatePresence>
