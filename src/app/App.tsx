@@ -115,6 +115,12 @@ function AppContent() {
   const { currentView, user, language } = useYieldX();
   const currentSubscription = SUBSCRIPTION_PLANS.find(plan => plan.id === user?.subscriptionTier);
 
+  // Every page change (next level, suppliers, any view) starts at the top of the new page,
+  // instead of keeping the scroll position of the page before it.
+  React.useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [currentView]);
+
   // Show migration helper in console
   React.useEffect(() => {
     console.log('%c🔧 YieldX Migration Helper', 'font-size: 16px; font-weight: bold; color: #f59e0b;');
