@@ -185,6 +185,46 @@ function ideaToOsmQueries(idea: string, sector: string): OsmQuery[] {
 // ═══════════════════════════════════════════════════════════════════════
 // OVERPASS API FETCH
 // ═══════════════════════════════════════════════════════════════════════
+// Public Overpass servers are often busy, so the query goes to three mirrors at
+// once and the first valid answer wins. Everything is cancelled after 15 s.
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
+
+function postOverpass(query: string, timeoutMs = 15000): Promise<any> {
+  const controllers = OVERPASS_ENDPOINTS.map(() => new AbortController());
+  const timer = setTimeout(() => controllers.forEach(c => c.abort()), timeoutMs);
+  return new Promise<any>((resolve, reject) => {
+    let failed = 0;
+    OVERPASS_ENDPOINTS.forEach((url, i) => {
+      fetch(url, {
+        method: 'POST',
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        signal: controllers[i].signal,
+      })
+        .then(r => {
+          if (!r.ok) throw new Error(`Overpass ${r.status}`);
+          return r.json();
+        })
+        .then(data => {
+          if (!Array.isArray(data?.elements)) throw new Error('Overpass: unexpected response');
+          if (typeof data.remark === 'string' && /error|timeout|timed out/i.test(data.remark)) {
+            throw new Error(`Overpass: ${data.remark}`);
+          }
+          controllers.forEach((c, j) => { if (j !== i) c.abort(); });
+          resolve(data);
+        })
+        .catch(err => {
+          failed += 1;
+          if (failed === OVERPASS_ENDPOINTS.length) reject(err);
+        });
+    });
+  }).finally(() => clearTimeout(timer));
+}
+
 async function fetchRealCompetitors(
   center: [number, number],
   queries: OsmQuery[],
@@ -202,14 +242,7 @@ ${tagFilters}
 );
 out center tags 60;`;
 
-  const response = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: `data=${encodeURIComponent(overpassQuery)}`,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-
-  if (!response.ok) throw new Error('Overpass API error');
-  const data = await response.json();
+  const data = await postOverpass(overpassQuery);
 
   return (data.elements as any[]).slice(0, 30).map((el: any, i: number): Competitor => {
     const elLat = el.lat ?? el.center?.lat ?? lat;
@@ -420,6 +453,8 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
   const [showAddForm, setShowAddForm] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  // Shown above the map when no competitor data could be loaded; the map itself still shows.
+  const [notice, setNotice] = useState<'' | 'unavailable' | 'none'>('');
   const [newComp, setNewComp] = useState({ name: '', nameAr: '', type: '', distance: '', rating: '4.0' });
 
   const hasIdea = businessIdea.trim().length > 3;
@@ -436,6 +471,7 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
     setMatchedQueries(queries);
     setLoadState('geocoding');
     setCompetitors([]);
+    setNotice('');
 
     let coords: [number, number] = getDefaultCoords(location);
 
@@ -443,7 +479,7 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
     try {
       const geoRes = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location + ' Oman')}&format=json&limit=1`,
-        { headers: { 'Accept-Language': 'en' } }
+        { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(6000) }
       );
       const geoData = await geoRes.json();
       if (geoData?.[0]) {
@@ -456,17 +492,15 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
 
     try {
       const results = await fetchRealCompetitors(coords, queries);
-      if (results.length === 0) {
-        setLoadState('no-results');
-      } else {
-        setCompetitors(results);
-        setLoadState('done');
-        setMapKey(k => k + 1);
-      }
+      setCompetitors(results);
+      setNotice(results.length === 0 ? 'none' : '');
     } catch (e) {
+      // Keep the map usable even when the competitor data service is down.
       setErrorMsg(String(e));
-      setLoadState('error');
+      setNotice('unavailable');
     }
+    setLoadState('done');
+    setMapKey(k => k + 1);
   }, [businessIdea, location, sector, hasIdea, hasLocation]);
 
   // Auto-run when business idea / location changes (debounced)
@@ -642,6 +676,27 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
 
         {loadState === 'done' && (
           <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+
+            {/* DATA NOTICE */}
+            {notice && (
+              <div className={`flex items-start gap-3 p-3 rounded-xl border text-xs ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p className="flex-1 leading-relaxed">
+                  {notice === 'unavailable'
+                    ? (isRTL
+                        ? 'خدمة بيانات المنافسين (OpenStreetMap) مشغولة الآن. الخريطة تعمل، ويمكنك إضافة المنافسين يدويًا أو إعادة المحاولة بعد قليل.'
+                        : 'The competitor data service (OpenStreetMap) is busy right now. The map still works: add competitors manually or retry shortly.')
+                    : (isRTL
+                        ? 'لم نجد أعمالًا مشابهة مسجلة في نطاق 3 كم، وهذا مؤشر على فرصة. يمكنك إضافة منافسين تعرفهم يدويًا.'
+                        : 'No similar businesses are registered within 3 km, which points to an opportunity. You can add competitors you know manually.')}
+                </p>
+                {notice === 'unavailable' && (
+                  <button onClick={runAnalysis} className={`flex-shrink-0 px-3 py-1 rounded-lg font-semibold ${isDark ? 'bg-amber-500/20 hover:bg-amber-500/30' : 'bg-amber-100 hover:bg-amber-200'}`}>
+                    {isRTL ? 'إعادة المحاولة' : 'Retry'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* SCORE BANNER */}
             {selectedCount > 0 && (
