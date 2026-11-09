@@ -36,6 +36,53 @@ const AREA_LABEL: Record<AdvisorArea, { en: string; ar: string; color: string }>
 
 const STORAGE = 'yieldx_advisor';
 
+/** Inline formatting: **bold**; stray markdown symbols are dropped. */
+function inlineMd(text: string, key: string): React.ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.length > 4 && part.startsWith('**') && part.endsWith('**') ? (
+      <strong key={`${key}-${i}`}>{part.slice(2, -2)}</strong>
+    ) : (
+      <React.Fragment key={`${key}-${i}`}>{part.replace(/\*\*|`/g, '')}</React.Fragment>
+    ),
+  );
+}
+
+/** Renders the advisor's markdown reply (headings, bullets, rules, bold) as clean text. */
+function AdvisorText({ text }: { text: string }) {
+  const out: React.ReactNode[] = [];
+  let lastBlank = true;
+  text.replace(/\r/g, '').split('\n').forEach((raw, i) => {
+    const t = raw.trim();
+    if (!t) {
+      if (!lastBlank) out.push(<div key={i} className="h-1.5" />);
+      lastBlank = true;
+      return;
+    }
+    lastBlank = false;
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) {
+      out.push(<hr key={i} className="my-1.5 border-current opacity-15" />);
+      return;
+    }
+    const h = t.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      out.push(<div key={i} className={`font-bold ${h[1].length <= 2 ? 'text-[15px]' : ''}`}>{inlineMd(h[2], `h${i}`)}</div>);
+      return;
+    }
+    const b = t.match(/^[-*•]\s+(.*)$/);
+    if (b) {
+      out.push(<div key={i} className="flex gap-1.5 ps-1"><span aria-hidden="true">•</span><span>{inlineMd(b[1], `b${i}`)}</span></div>);
+      return;
+    }
+    const n = t.match(/^(\d+)[.)]\s+(.*)$/);
+    if (n) {
+      out.push(<div key={i} className="flex gap-1.5 ps-1"><span>{n[1]}.</span><span>{inlineMd(n[2], `n${i}`)}</span></div>);
+      return;
+    }
+    out.push(<p key={i}>{inlineMd(t, `p${i}`)}</p>);
+  });
+  return <div className="space-y-1">{out}</div>;
+}
+
 export function CopilotBridge({ language }: CopilotBridgeProps) {
   const { moduleData, projectTypeData, financialKPIs, activeSavedProjectId, user } = useYieldX();
   const isAr = language === 'ar';
@@ -314,14 +361,14 @@ export function CopilotBridge({ language }: CopilotBridgeProps) {
                     {chat.map((m, i) => (
                       <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
-                          className="max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed"
+                          className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.role === 'user' ? 'whitespace-pre-wrap' : ''}`}
                           style={
                             m.role === 'user'
                               ? { background: C.falaj, color: 'white' }
                               : { background: 'white', border: `1px solid rgba(215,184,137,.7)` }
                           }
                         >
-                          {m.content}
+                          {m.role === 'assistant' ? <AdvisorText text={m.content} /> : m.content}
                         </div>
                       </div>
                     ))}
