@@ -488,6 +488,7 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
     } catch { /* fall back to default */ }
 
     setCenter(coords);
+    setMapKey(k => k + 1);
     setLoadState('fetching');
 
     try {
@@ -624,23 +625,6 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
 
       {/* ─── LOADING STATES ─── */}
       <AnimatePresence mode="wait">
-        {(loadState === 'geocoding' || loadState === 'fetching') && (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className={`${card} p-10 flex flex-col items-center justify-center gap-4 min-h-48`}>
-            <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
-            <div className="text-center">
-              <p className={`text-sm font-semibold ${tp}`}>
-                {loadState === 'geocoding'
-                  ? (isRTL ? 'جارٍ تحديد الموقع...' : 'Locating your area...')
-                  : (isRTL ? 'جارٍ البحث عن منافسين حقيقيين...' : 'Scanning for real competitors nearby...')}
-              </p>
-              <p className={`text-xs mt-1 ${ts}`}>
-                {isRTL ? 'نستخدم بيانات OpenStreetMap للعثور على أعمال تجارية حقيقية بالقرب منك' : 'Using OpenStreetMap data to find real businesses near you'}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
         {loadState === 'error' && (
           <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className={`${card} p-8 flex flex-col items-center gap-3 text-center min-h-40`}>
@@ -674,8 +658,20 @@ export function CompetitorAnalysisMap({ location = '', sector, businessIdea = ''
           </motion.div>
         )}
 
-        {loadState === 'done' && (
+        {(loadState === 'done' || loadState === 'geocoding' || loadState === 'fetching') && (
           <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+
+            {/* SEARCH STATUS: the map is usable while competitors load */}
+            {(loadState === 'geocoding' || loadState === 'fetching') && (
+              <div className={`flex items-center gap-3 p-3 rounded-xl border text-xs ${isDark ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
+                <p className="flex-1">
+                  {isRTL
+                    ? 'جارٍ البحث عن منافسين حقيقيين بالقرب منك (OpenStreetMap)… الخريطة جاهزة، وتظهر النتائج خلال ثوانٍ.'
+                    : 'Searching OpenStreetMap for real competitors nearby… the map is ready and results appear in a few seconds.'}
+                </p>
+              </div>
+            )}
 
             {/* DATA NOTICE */}
             {notice && (
