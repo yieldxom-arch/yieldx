@@ -54,7 +54,8 @@ function Marker({ state, selected, onSelect, isAr }: { state: StationState; sele
   const [hover, setHover] = useState(false);
   const { x, z, ground, markerY } = useMemo(() => spotOf(state.levelId), [state.levelId]);
   const Icon = state.levelId >= 0 ? ICONS[state.levelId] : FileText;
-  const showLabel = selected || hover || state.status === 'active';
+  // Always label the next level to do; the final-study marker only on hover, so it does not cover its neighbours.
+  const showLabel = selected || hover || (state.status === 'active' && state.levelId >= 0);
   const pct = Math.round(state.progress * 100);
   const ring = 2 * Math.PI * 17;
   const color = state.status === 'done' ? '#10b981' : state.status === 'active' ? '#f59e0b' : '#94a3b8';
@@ -69,17 +70,21 @@ function Marker({ state, selected, onSelect, isAr }: { state: StationState; sele
         <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
       </mesh>
       <Html position={[x, markerY, z]} center zIndexRange={[30, 0]}>
-        <button
-          type="button"
-          dir={isAr ? 'rtl' : 'ltr'}
-          onClick={() => onSelect(state.levelId)}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          title={state.title}
-          className="flex items-center gap-1.5 select-none"
-          style={{ transform: selected ? 'scale(1.12)' : undefined, transition: 'transform .2s' }}
-        >
-          <span className="relative grid place-items-center w-10 h-10 rounded-full shadow-lg" style={{ background: 'rgba(255,255,255,.95)' }}>
+        {/* Only the round icon takes up space, so the marker stays exactly under
+            the cursor when the label appears (the label used to push it away). */}
+        <div className="relative" dir={isAr ? 'rtl' : 'ltr'}>
+          <button
+            type="button"
+            onClick={() => onSelect(state.levelId)}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            onFocus={() => setHover(true)}
+            onBlur={() => setHover(false)}
+            title={state.title}
+            aria-label={state.title}
+            className="relative grid place-items-center w-10 h-10 rounded-full shadow-lg select-none cursor-pointer"
+            style={{ background: 'rgba(255,255,255,.95)', transform: selected || hover ? 'scale(1.12)' : undefined, transition: 'transform .2s' }}
+          >
             <svg viewBox="0 0 40 40" className="absolute inset-0 w-10 h-10 -rotate-90">
               <circle cx="20" cy="20" r="17" fill="none" stroke="#e5e7eb" strokeWidth="3" />
               <circle
@@ -101,14 +106,17 @@ function Marker({ state, selected, onSelect, isAr }: { state: StationState; sele
             >
               {state.levelId >= 0 ? state.levelId : '★'}
             </span>
-          </span>
+          </button>
           {showLabel && (
-            <span className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-md" style={{ background: 'rgba(255,255,255,.95)', color: '#0f172a' }}>
+            <span
+              className="pointer-events-none absolute whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold shadow-md"
+              style={{ background: 'rgba(255,255,255,.95)', color: '#0f172a', top: '50%', insetInlineStart: '100%', marginInlineStart: 6, transform: 'translateY(-50%)' }}
+            >
               {state.title}
               {state.status === 'active' && pct > 0 ? ` · ${pct}%` : ''}
             </span>
           )}
-        </button>
+        </div>
       </Html>
     </group>
   );
