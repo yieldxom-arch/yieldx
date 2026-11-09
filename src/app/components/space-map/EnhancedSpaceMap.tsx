@@ -67,6 +67,13 @@ const levelColors = [
 
 const getStatusBadge = (status?: string, language: 'ar' | 'en', t: any) => {
   switch (status) {
+    case 'completed':
+      return (
+        <Badge className="bg-green-500/20 text-green-700 dark:text-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          {t.levels.completed}
+        </Badge>
+      );
     case 'not-started':
       return (
         <Badge className="bg-gray-500/20 text-gray-700 dark:text-gray-300">
@@ -184,6 +191,12 @@ export function LevelGridMap() {
               const Icon = levelIcons[index];
               const colorClass = levelColors[index];
               const progress = (level.xp / level.maxXp) * 100;
+              // A finished level with no teacher submission should read as completed, not "not started".
+              const cardStatus =
+                level.completed && (!level.submissionStatus || level.submissionStatus === 'not-started')
+                  ? 'completed'
+                  : level.submissionStatus;
+              const reviewLabel = language === 'ar' ? 'مراجعة المستوى' : 'Review level';
 
               return (
                 <motion.div
@@ -246,7 +259,7 @@ export function LevelGridMap() {
                               {/* Status Badge */}
                               <CardItem translateZ="40" className="mb-3">
                                 {level.unlocked ? (
-                                  getStatusBadge(level.submissionStatus, language, t)
+                                  getStatusBadge(cardStatus, language, t)
                                 ) : (
                                   <Badge className="bg-slate-400 dark:bg-slate-700 text-slate-700 dark:text-slate-400">
                                     <Lock className="w-3 h-3 mr-1" />
@@ -310,7 +323,9 @@ export function LevelGridMap() {
                                       handleLevelClick(level.levelId, level.unlocked);
                                     }}
                                   >
-                                    {level.submissionStatus === 'graded'
+                                    {cardStatus === 'completed'
+                                      ? reviewLabel
+                                      : level.submissionStatus === 'graded'
                                       ? t.levels.viewGrading
                                       : level.submissionStatus === 'submitted'
                                       ? t.levels.viewSubmission
@@ -449,7 +464,9 @@ export function LevelGridMap() {
                               }`}
                               onClick={() => handleLevelClick(level.levelId, level.unlocked)}
                             >
-                              {level.submissionStatus === 'graded'
+                              {cardStatus === 'completed'
+                                ? reviewLabel
+                                : level.submissionStatus === 'graded'
                                 ? t.levels.viewFullGrading
                                 : level.submissionStatus === 'submitted'
                                 ? t.levels.viewSubmission
