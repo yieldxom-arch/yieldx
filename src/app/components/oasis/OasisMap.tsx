@@ -1,4 +1,4 @@
-import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import React, { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Box, CheckCircle2, Circle, List, Lock, Minus, Plus, RotateCcw, Sparkles as SparklesIcon, X } from 'lucide-react';
 import { useYieldX } from '@/app/contexts/YieldXContext';
@@ -135,6 +135,22 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
     setCurrentView(selState.levelId === -1 ? 'full-study' : `module-${selState.levelId}`);
   };
 
+  // Clicking a level in the valley flies the camera there, then opens the level.
+  // A locked level is only selected, so the side panel can say what is needed first.
+  const openRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (openRef.current) clearTimeout(openRef.current);
+  }, []);
+  const openFromMap = (levelId: number) => {
+    setSelected(levelId);
+    const st = stations.find(s => s.levelId === levelId);
+    if (!st || st.status === 'locked') return;
+    if (openRef.current) clearTimeout(openRef.current);
+    openRef.current = setTimeout(() => {
+      setCurrentView(levelId === -1 ? 'full-study' : `module-${levelId}`);
+    }, 1100);
+  };
+
   const statusText = (s: StationState) =>
     s.status === 'done'
       ? tx('Finished', 'مكتمل')
@@ -191,7 +207,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
                   <ValleyScene
                     stations={stations}
                     selected={selected}
-                    onSelect={setSelected}
+                    onSelect={openFromMap}
                     fresh={fresh}
                     timeOfDay={timeOfDay}
                     isAr={isAr}
@@ -224,7 +240,7 @@ export function OasisMap({ renderList }: { renderList: () => React.ReactNode }) 
               ))}
             </div>
             <div className="absolute bottom-3 start-3 rounded-lg bg-white/80 dark:bg-slate-900/70 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 shadow max-w-[70%]">
-              {tx('Drag to look around · click a level to fly there', 'اسحب للتجول · اضغط على مستوى للانتقال إليه')}
+              {tx('Drag to look around · click a level to open it', 'اسحب للتجول · اضغط على مستوى لفتحه')}
             </div>
           </div>
 
